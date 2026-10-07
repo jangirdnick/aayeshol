@@ -1,14 +1,42 @@
 {
-  "name": "Aayeshol",
+  "name": "aayeshol",
   "private": true,
-  "version": "1.0.0",
   "scripts": {
-    "dev": "turbo run dev",
     "build": "turbo run build",
-    "lint": "turbo run lint"
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,md,json}\"",
+    "check-types": "turbo run check-types",
+    "audit:fix": "pnpm audit --fix override",
+    "audit:warn": "pnpm audit --audit-level=warn --ignore=GHSA-vfj7-8cjw-p6xm",
+    "audit:high": "pnpm audit --audit-level=high",
+    "audit:critical": "pnpm audit --audit-level=critical",
+    "prepare": "husky"
   },
-  "packageManager": "pnpm@10.32.1",
   "devDependencies": {
-    "turbo": "^2.8.17"
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.5.2",
+    "prettier": "3.9.6",
+    "turbo": "^2.11.7",
+    "typescript": "5.6.3",
+    "typescript-eslint": "^8.0.0"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yaml,yml}": [
+      "prettier --write"
+    ]
   }
 }

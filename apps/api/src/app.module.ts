@@ -1,30 +1,20 @@
 import { Module } from '@nestjs/common';
-
-import { UsersController } from './users/users.controller';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { AuthModule } from './auth/auth.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { SocialModule } from './social/social.module';
-import { AiModule } from './ai/ai.module';
-import { PostsModule } from './posts/posts.module';
-import { UsersService } from './users/users.service';
-import { UsersModule } from './users/users.module';
-import { DashboardModule } from './dashboard/dashboard.module';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { MailModule } from './infrastructure/mail/mail.module.js';
+import { RedisModule } from './infrastructure/redis/redis.module.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    AuthModule,
-    PrismaModule,
-    SocialModule,
-    AiModule,
-    PostsModule,
-    UsersModule,
-    DashboardModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env', '.env.local'], // Follow standard environment variable resolution
+    }),
+    MailModule,
+    RedisModule,
   ],
-  controllers: [AppController, UsersController],
-  providers: [AppService, UsersService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

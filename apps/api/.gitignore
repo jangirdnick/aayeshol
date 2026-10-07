@@ -1,76 +1,78 @@
-# Node modules
-node_modules/
+# ─────────────────────────────────────────
+# Dependencies
+# ─────────────────────────────────────────
+/node_modules/
 
-# Build output
-dist/
-build/
+# ─────────────────────────────────────────
+# Build Outputs
+# ─────────────────────────────────────────
+/dist/
+/build/
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# ─────────────────────────────────────────
+# Prisma Generated Client
+# (output: apps/api/generated/prisma/)
+# Regenerated automatically via: prisma generate
+# ─────────────────────────────────────────
+/generated/
 
-# OS files
-.DS_Store
-Thumbs.db
+# ─────────────────────────────────────────
+# TypeScript Build Cache
+# ─────────────────────────────────────────
+*.tsbuildinfo
 
-# Environment variables
+# ─────────────────────────────────────────
+# Environment Variables
+# ─────────────────────────────────────────
 .env
 .env.*
 !.env.example
 
-# NestJS specific
-coverage/
-.nyc_output/
+# ─────────────────────────────────────────
+# Test & Coverage
+# ─────────────────────────────────────────
+/coverage/
+/.nyc_output/
 
-# TypeScript
-*.tsbuildinfo
+# ─────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# IDE / Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Docker
-docker-compose.override.yml
-
-# Cache
-.cache/
-.tmp/
-temp/
-
-# Package managers
-.pnpm-store/
-.yarn/
-.yarn-cache/
-.yarnrc.yml
-
-# Lock files (optional – team decision)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
-
-# Misc
-*.tgz
-
-# Debug
+# ─────────────────────────────────────────
+# Runtime Data
+# ─────────────────────────────────────────
+pids/
 *.pid
 *.seed
 *.pid.lock
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# Test output
-jest.config.js
-coverage/
+# ─────────────────────────────────────────
+# OS & System
+# ─────────────────────────────────────────
+.DS_Store
+.temp/
+.tmp/
 
-# Local uploads / static files (if any)
-uploads/
-public/uploads/
-
-# Secrets
-secrets/
-*.pem
-*.key
+# ─────────────────────────────────────────
+# IDEs & Editors
+# ─────────────────────────────────────────
+/.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

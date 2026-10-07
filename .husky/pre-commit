@@ -1,0 +1,9 @@
+
+echo "🔍 Running Type Check..."
+pnpm check-types
+
+echo "💅 Running Format Check..."
+pnpm format:check
+
+echo "🎨 Running Linter and Formatter on staged files..."
+pnpm lint-staged

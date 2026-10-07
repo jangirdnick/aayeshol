@@ -1,10 +1,35 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'packages/*'
+
 allowBuilds:
-  '@nestjs/core': false
-  '@prisma/engines': false
-  msw: false
-  prisma: false
-  sharp: false
-  unrs-resolver: false
+  '@prisma/engines': true
+  esbuild: true
+  msgpackr-extract: true
+  prisma: true
+
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm
+
+catalogs:
+  prisma:
+    prisma: 7.10.0
+
+overrides:
+  '@humanfs/node@<0.16.8': ^0.16.8
+  deepmerge-ts@<8.0.0: ^8.0.0
+  mysql2@<3.22.0: ^3.22.0
+  mysql2@<=3.23.0: ^3.23.1
+  next@>=16.2.0 <16.3.6: ^16.3.6
+  tmp@<0.2.6: ^0.2.6
+  tmp@<=0.2.3: ^0.2.4
+  undici@<6.23.0: ^6.23.0
+  undici@<6.24.0: ^6.24.0
+  undici@<6.27.0: ^6.27.0
+  undici@<6.28.0: ^6.28.0
+  undici@<6.28.1: ^6.28.1
+  undici@>=6.0.0 <6.21.1: ^6.21.1
+  undici@>=6.0.0 <6.21.2: ^6.21.2
+  undici@>=6.0.0 <6.24.0: ^6.24.0
+  undici@>=6.7.0 <6.28.1: ^6.28.1

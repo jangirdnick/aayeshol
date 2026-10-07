@@ -1,48 +1,99 @@
-# Node modules
+# ─────────────────────────────────────────
+# Dependencies
+# ─────────────────────────────────────────
 node_modules/
-**/node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
 
+# ─────────────────────────────────────────
+# Environment Variables
+# ─────────────────────────────────────────
+.env
+.env.*
+!.env.example
 
-
-# Build outputs
+# ─────────────────────────────────────────
+# Build Outputs
+# ─────────────────────────────────────────
 dist/
 build/
 out/
-**/dist/
-**/build/
-**/out/
+.next/
 
-# Logs
-logs
+# ─────────────────────────────────────────
+# Prisma Generated Client
+# ─────────────────────────────────────────
+generated/
+
+# ─────────────────────────────────────────
+# TypeScript
+# ─────────────────────────────────────────
+*.tsbuildinfo
+next-env.d.ts
+
+# ─────────────────────────────────────────
+# Test & Coverage
+# ─────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─────────────────────────────────────────
+# Turbo Cache
+# ─────────────────────────────────────────
+.turbo/
+
+# ─────────────────────────────────────────
+# Debug & Logs
+# ─────────────────────────────────────────
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# OS files
+# ─────────────────────────────────────────
+# Runtime Data
+# ─────────────────────────────────────────
+pids/
+*.pid
+*.seed
+*.pid.lock
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ─────────────────────────────────────────
+# Deployment / Cloud
+# ─────────────────────────────────────────
+.vercel/
+
+# ─────────────────────────────────────────
+# OS & System
+# ─────────────────────────────────────────
 .DS_Store
 Thumbs.db
+*.pem
+.temp/
+.tmp/
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# IDEs
-.vscode/
+# ─────────────────────────────────────────
+# IDEs & Editors
+# ─────────────────────────────────────────
 .idea/
-*.sublime-project
+.project
+.classpath
+.c9/
+*.launch
+.settings/
 *.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
-# Optional: package lock files (if you want to ignore in monorepo)
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
-# Docker files (optional if you track Dockerfile separately)
-docker-compose.override.yml
-
-# Others
-*.tgz
-*.zip
+# ─────────────────────────────────────────
+# Local Dev Scratch Files
+# ─────────────────────────────────────────
+git/
