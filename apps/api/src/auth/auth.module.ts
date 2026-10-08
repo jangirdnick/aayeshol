@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { MailModule } from '@/infrastructure/mail/mail.module.js';
+import { PrismaModule } from '@/prisma/prisma.module.js';
 
 /**
  * AuthModule registers the authentication feature.
@@ -21,6 +22,7 @@ import { MailModule } from '@/infrastructure/mail/mail.module.js';
  */
 @Module({
   imports: [
+    PrismaModule,
     MailModule,
     JwtModule.register({}), // No global secret — each call passes its own secret
   ],
