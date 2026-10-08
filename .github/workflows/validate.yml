@@ -5,10 +5,26 @@ on:
     branches:
       - main
       - v2
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.gitattributes'
+      - '.vscode/**'
+      - '.idea/**'
   pull_request:
     branches:
       - main
       - v2
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.gitattributes'
+      - '.vscode/**'
+      - '.idea/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

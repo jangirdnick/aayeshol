@@ -1,13 +1,149 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Platform {
+  LINKEDIN
+  X_TWITTER
+  THREADS
+  INSTAGRAM
+  YOUTUBE
+}
+
+/// Lifecycle status of a social post (Draft -> Scheduled -> Publishing -> Published / Failed).
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
+/// Core User Model - Holds primary profile information.
+/// Authentication and OAuth token data are isolated in child models for security.
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  lastName      String?
+  email         String    @unique
+  emailVerified DateTime?
+  avatar        String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  /// 1-to-1 relation for local auth credentials and hashed refresh tokens
+  account        Account?
+  /// ( 1-to-Many ) Connected social media profiles (LinkedIn, X, YouTube, etc.)
+  socialAccounts SocialAccount[]
+  /// ( 1-to-Many ) All social posts created or scheduled by this user
+  socialPosts    SocialPost[]
+  /// ( 1-to-Many ) Active user authentication sessions
+  sessions       Session[]
+}
+
+/// Local Authentication & Refresh Token Storage.
+/// Separated 1-to-1 from User to keep user profile queries lightweight and isolate security fields.
+model Account {
+  id       String @id @default(cuid())
+  password String /// Hashed password (argon2 / bcrypt)
+
+  /// Hashed refresh token for secure JWT rotation
+  refreshToken          String?   @unique
+  refreshTokenExpiresAt DateTime?
+  isRevoked             Boolean   @default(false)
+
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Active Session Tracking.
+/// Used for session validation, IP/User-Agent security audits, and multi-device logout.
+model Session {
+  id        String   @id @default(cuid())
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Public Social Account Metadata.
+/// Stores public profile details (name, avatar, platform ID) used by frontend UI.
+/// Encrypted OAuth tokens are isolated in SocialToken for security & performance.
+model SocialAccount {
+  id         String   @id @default(cuid())
+  provider   Platform
+  providerId String   /// Platform-specific ID returned by OAuth provider
+  name       String?
+  email      String?
+  avatar     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenData SocialToken? // 1-to-1
+  posts     SocialPost[] // 1-to-Many
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+/// Sensitive OAuth Token Store (Isolated).
+/// Contains encrypted access and refresh tokens. Only queried by background publishing workers
+/// during post publishing to prevent sensitive tokens from being loaded in UI queries.
+model SocialToken {
+  id           String    @id @default(cuid())
+  accessToken  String    /// AES-encrypted OAuth access token
+  refreshToken String?   /// AES-encrypted OAuth refresh token
+  tokenExpiry  DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  socialAccountId String        @unique
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+}
+
+/// Social Media Post Execution & Scheduling Model.
+/// Stores post text, attached media, target platform, publish schedules, and execution state.
+model SocialPost {
+  id           String     @id @default(cuid())
+  title        String?    /// Optional title (e.g. YouTube video title)
+  content      String     @db.Text /// Main caption/body content
+  mediaUrls    String[]   /// Attached Google Drive / CDN media URLs
+  platform     Platform
+  status       PostStatus @default(DRAFT)
+  publishAt    DateTime?  /// Scheduled date & time for automated background worker execution
+  failedReason String?    @db.Text /// Detailed error message if background worker execution fails
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   SocialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  /// Composite index for fast background worker polling of scheduled posts
+  @@index([status, publishAt])
+  @@index([userId])
+  @@index([accountId])
 }

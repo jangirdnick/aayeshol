@@ -306,6 +306,65 @@ Do not write random code simply because a package is installed.
 
 ---
 
+## Agent Skills (`.agents/skills`)
+
+The `apps/api/.agents/skills` directory contains specialized skill packages and guidance manuals for database management, Prisma ORM operations, schema design, and driver adapter configuration. AI agents and developers working on the backend MUST reference these skills before executing database modifications or writing data access logic.
+
+### Available Skills Index
+
+| Skill Name                             | Path                                                           | Domain / Scope                                                   | Primary Triggers                                      |
+| -------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------- |
+| `prisma-upgrade-v7`                    | `apps/api/.agents/skills/prisma-upgrade-v7`                    | Prisma v7 breaking changes, configuration, generator outputs     | Generator migration, v7 imports, `prisma7.config.ts`  |
+| `prisma-client-api`                    | `apps/api/.agents/skills/prisma-client-api`                    | Type-safe queries, CRUD operations, transactions, relations      | Writing database queries, NestJS Prisma service logic |
+| `prisma-orm-setup`                     | `apps/api/.agents/skills/prisma-orm-setup`                     | `schema.prisma` configuration, models, relations, field docs     | Schema updates, model creation, relation modeling     |
+| `prisma-driver-adapter-implementation` | `apps/api/.agents/skills/prisma-driver-adapter-implementation` | Native driver adapter (`@prisma/adapter-pg`) setup               | Connecting Prisma Client via driver adapters          |
+| `prisma-postgres`                      | `apps/api/.agents/skills/prisma-postgres`                      | PostgreSQL-specific data types, arrays, JSONB, composite indexes | Postgres schema design, index optimization            |
+| `prisma-postgres-setup`                | `apps/api/.agents/skills/prisma-postgres-setup`                | PostgreSQL database instance & connection credentials            | DB setup, initial migrations, env configs             |
+| `prisma-cli`                           | `apps/api/.agents/skills/prisma-cli`                           | Prisma CLI workflow (`generate`, `migrate`, `db push`)           | Running DB commands, migration scripts                |
+| `prisma-database-setup`                | `apps/api/.agents/skills/prisma-database-setup`                | Database connectivity, connection pooling, SSL settings          | Connection troubleshooting, pool tuning               |
+
+---
+
+### When, Where & How to Use Skills (Kab, Kaha, Kase)
+
+#### 1. `prisma-upgrade-v7`
+
+- **Kab (When)**: When configuring Prisma v7, modifying generator blocks, fixing import errors post-upgrade, or setting up `prisma7.config.ts`.
+- **Kaha (Where)**: `apps/api/prisma/schema.prisma`, `apps/api/prisma7.config.ts`, and `apps/api/src/prisma/prisma.service.ts`.
+- **Kase (How)**: Read `SKILL.md` in `prisma-upgrade-v7`. Ensure generator uses `provider = "prisma-client"` with explicit `output = "../generated/prisma"`. Import client from `../generated/prisma/client` and pass `@prisma/adapter-pg` driver adapter to `PrismaClient`.
+
+#### 2. `prisma-client-api`
+
+- **Kab (When)**: When implementing database queries, service methods (e.g. Auth, Post scheduling, Social account CRUD), transactions (`$transaction`), or complex filters.
+- **Kaha (Where)**: NestJS services in `apps/api/src/` (e.g., `user.service.ts`, `post.service.ts`, `prisma.service.ts`).
+- **Kase (How)**: Use strict type safety with `satisfies Prisma.<Model>Select`, avoid raw queries where ORM methods exist, handle nullability, and wrap multi-step DB operations in `$transaction`.
+
+#### 3. `prisma-orm-setup`
+
+- **Kab (When)**: When designing new database tables, updating enum types, establishing table relationships (1-to-1, 1-to-Many), or adding JSDoc comments (`///`) to schema fields.
+- **Kaha (Where)**: `apps/api/prisma/schema.prisma`.
+- **Kase (How)**: Use UUID primary keys (`@id @default(uuid())`), explicit onDelete actions (`onDelete: Cascade`), meaningful JSDoc triple-slash (`///`) docstrings for models/fields, and run `pnpm exec prisma generate` after schema edits.
+
+#### 4. `prisma-driver-adapter-implementation`
+
+- **Kab (When)**: When initializing `PrismaClient` with native PostgreSQL driver adapters (`pg` pool management).
+- **Kaha (Where)**: `apps/api/src/prisma/prisma.service.ts` or database provider initialization modules.
+- **Kase (How)**: Instantiate `PrismaPg` adapter using `pg.Pool`, pass the adapter instance to `new PrismaClient({ adapter })`, and ensure clean disconnect on module destruction.
+
+#### 5. `prisma-postgres` & `prisma-postgres-setup`
+
+- **Kab (When)**: When leveraging Postgres features (e.g. `String[]` arrays, `@db.Text`, composite indexes `@@index([status, publishAt])`) or setting up DB connections.
+- **Kaha (Where)**: `schema.prisma`, environment variable configurations (`.env`), and database migration scripts.
+- **Kase (How)**: Configure connection string `DATABASE_URL`, add index attributes for frequent query filters (e.g. BullMQ worker post polling), and follow Postgres best practices.
+
+#### 6. `prisma-cli`
+
+- **Kab (When)**: When running database commands such as migrations, schema generation, or database inspection.
+- **Kaha (Where)**: Terminal / npm scripts in `apps/api/package.json`.
+- **Kase (How)**: Use `pnpm exec prisma generate` for client generation, `pnpm exec prisma migrate dev --name <migration_name>` for local schema migrations, and never run destructive commands on production databases.
+
+---
+
 ## File & Folder Rules
 
 Before creating a new file or folder:
