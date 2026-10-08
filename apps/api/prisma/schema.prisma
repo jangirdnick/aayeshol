@@ -36,7 +36,7 @@ model User {
   name          String
   lastName      String?
   email         String    @unique
-  emailVerified DateTime?
+  emailVerified Boolean   @default(false)
   avatar        String?
   role          Role      @default(USER)
   createdAt     DateTime  @default(now())
@@ -70,10 +70,11 @@ model Account {
 }
 
 /// Active Session Tracking.
-/// Used for session validation, IP/User-Agent security audits, and multi-device logout.
+/// Used for session validation, IP/User-Agent/DeviceId security audits, and multi-device logout.
 model Session {
   id        String   @id @default(cuid())
   ipAddress String?
+  deviceId String?
   userAgent String?
   expiresAt DateTime
   createdAt DateTime @default(now())
