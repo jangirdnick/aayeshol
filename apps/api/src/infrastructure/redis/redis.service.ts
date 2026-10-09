@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
+import type { RequestContext } from '../../auth/types/auth.types.js';
 
 /**
  * Production-ready service providing strongly-typed helper methods for Redis operations via `@nestjs-modules/ioredis`.
@@ -40,10 +41,16 @@ export class RedisService implements OnModuleDestroy {
     });
   }
 
+  private formatContext(ctx?: RequestContext): string {
+    if (!ctx) return '';
+    return ` [requestId=${ctx.requestId}, ip=${ctx.ipAddress ?? 'unknown'}, ua=${ctx.userAgent ?? 'unknown'}]`;
+  }
+
   /**
    * Retrieves a raw string value stored at the specified Redis key.
    *
    * @param key - The unique Redis key to look up.
+   * @param ctx - (Optional) RequestContext for structured logging
    * @returns Promise resolving to the string value if found, or `null` if the key does not exist.
    * @throws {Error} If Redis fails to execute the get command.
    *
@@ -52,12 +59,14 @@ export class RedisService implements OnModuleDestroy {
    * const token = await this.redisService.get('user:session:123');
    * ```
    */
-  async get(key: string): Promise<string | null> {
+  async get(key: string, ctx?: RequestContext): Promise<string | null> {
     try {
       return await this.redisClient.get(key);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error fetching key "${key}" from Redis: ${message}`);
+      this.logger.error(
+        `Error fetching key "${key}" from Redis: ${message}${this.formatContext(ctx)}`,
+      );
       throw error;
     }
   }
@@ -67,6 +76,7 @@ export class RedisService implements OnModuleDestroy {
    *
    * @template T - Expected data type of the parsed object.
    * @param key - The unique Redis key to look up.
+   * @param ctx - (Optional) RequestContext for structured logging
    * @returns Promise resolving to the parsed object of type `T`, or `null` if the key does not exist / parsing fails.
    *
    * @example
@@ -75,14 +85,16 @@ export class RedisService implements OnModuleDestroy {
    * const user = await this.redisService.getObject<UserProfile>('user:profile:123');
    * ```
    */
-  async getObject<T>(key: string): Promise<T | null> {
+  async getObject<T>(key: string, ctx?: RequestContext): Promise<T | null> {
     try {
       const data = await this.redisClient.get(key);
       if (!data) return null;
       return JSON.parse(data) as T;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error parsing or fetching object key "${key}" from Redis: ${message}`);
+      this.logger.error(
+        `Error parsing or fetching object key "${key}" from Redis: ${message}${this.formatContext(ctx)}`,
+      );
       return null;
     }
   }
@@ -93,6 +105,7 @@ export class RedisService implements OnModuleDestroy {
    * @param key - The key under which to store the value.
    * @param value - The string value to store.
    * @param ttlSeconds - Optional expiration time in seconds.
+   * @param ctx - (Optional) RequestContext for structured logging
    * @returns Promise resolving when the operation succeeds.
    * @throws {Error} If Redis fails to set the value.
    *
@@ -101,7 +114,7 @@ export class RedisService implements OnModuleDestroy {
    * await this.redisService.set('otp:123456', '998877', 300); // Expires in 5 minutes
    * ```
    */
-  async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+  async set(key: string, value: string, ttlSeconds?: number, ctx?: RequestContext): Promise<void> {
     try {
       if (ttlSeconds && ttlSeconds > 0) {
         await this.redisClient.set(key, value, 'EX', ttlSeconds);
@@ -110,7 +123,9 @@ export class RedisService implements OnModuleDestroy {
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error setting key "${key}" in Redis: ${message}`);
+      this.logger.error(
+        `Error setting key "${key}" in Redis: ${message}${this.formatContext(ctx)}`,
+      );
       throw error;
     }
   }
@@ -121,6 +136,7 @@ export class RedisService implements OnModuleDestroy {
    * @param key - The key under which to store the object.
    * @param value - The object or data structure to serialize and store.
    * @param ttlSeconds - Optional expiration time in seconds.
+   * @param ctx - (Optional) RequestContext for structured logging
    * @returns Promise resolving when the operation succeeds.
    * @throws {Error} If serialization or storage fails.
    *
@@ -129,13 +145,20 @@ export class RedisService implements OnModuleDestroy {
    * await this.redisService.setObject('cart:session:456', { items: [1, 2, 3] }, 3600);
    * ```
    */
-  async setObject(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+  async setObject(
+    key: string,
+    value: unknown,
+    ttlSeconds?: number,
+    ctx?: RequestContext,
+  ): Promise<void> {
     try {
       const stringifiedValue = JSON.stringify(value);
-      await this.set(key, stringifiedValue, ttlSeconds);
+      await this.set(key, stringifiedValue, ttlSeconds, ctx);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error setting object key "${key}" in Redis: ${message}`);
+      this.logger.error(
+        `Error setting object key "${key}" in Redis: ${message}${this.formatContext(ctx)}`,
+      );
       throw error;
     }
   }
@@ -144,6 +167,7 @@ export class RedisService implements OnModuleDestroy {
    * Removes a key from Redis storage.
    *
    * @param key - The key to delete.
+   * @param ctx - (Optional) RequestContext for structured logging
    * @returns Promise resolving when deletion completes.
    * @throws {Error} If Redis fails to delete the key.
    *
@@ -152,12 +176,14 @@ export class RedisService implements OnModuleDestroy {
    * await this.redisService.del('user:session:123');
    * ```
    */
-  async del(key: string): Promise<void> {
+  async del(key: string, ctx?: RequestContext): Promise<void> {
     try {
       await this.redisClient.del(key);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error deleting key "${key}" from Redis: ${message}`);
+      this.logger.error(
+        `Error deleting key "${key}" from Redis: ${message}${this.formatContext(ctx)}`,
+      );
       throw error;
     }
   }
