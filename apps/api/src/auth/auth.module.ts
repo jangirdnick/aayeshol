@@ -4,9 +4,11 @@ import { APP_GUARD } from '@nestjs/core';
 
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { AuthHelperService } from './helpers/auth-helper.service.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { MailModule } from '@/infrastructure/mail/mail.module.js';
 import { PrismaModule } from '@/prisma/prisma.module.js';
+import { RedisModule } from '@/infrastructure/redis/redis.module.js';
 
 /**
  * AuthModule registers the authentication feature.
@@ -23,12 +25,14 @@ import { PrismaModule } from '@/prisma/prisma.module.js';
 @Module({
   imports: [
     PrismaModule,
+    RedisModule,
     MailModule,
     JwtModule.register({}), // No global secret — each call passes its own secret
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
+    AuthHelperService,
     JwtAuthGuard,
     {
       provide: APP_GUARD,

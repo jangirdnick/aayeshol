@@ -21,25 +21,39 @@ The backend is a containerized NestJS application with a modular architecture. I
 - Email notifications through Resend
 - PostgreSQL database operations
 
-### Authentication Flow
+### Authentication & Session Flow
+
+The system employs a 2-step OTP flow for Registration, Login, and Password Reset:
 
 ```text
-Email + Password
+Step 1: Initiate
+Client (Email + Password)
       ↓
-Credential Validation
+Validation (Strict Regex for Email/Password)
       ↓
-Generate OTP
+Generate OTP & Challenge ID (UUIDv4)
       ↓
 Store OTP temporarily in Redis
       ↓
 Send OTP through Resend
       ↓
-User verifies OTP
+Return Challenge ID to Client
+
+Step 2: Verify
+Client (Challenge ID + OTP)
       ↓
-Issue JWT
+Validate OTP against Redis
+      ↓
+Issue Access Token (JWT - 8m) & Refresh Token (HTTP-Only Cookie - 7h)
+      ↓
+Create Session in DB & Cache in Redis
 ```
 
-Authentication must consider secure password handling, OTP expiration/TTL, retry/attempt limits, JWT expiration, guards, authorization, rate limiting, and safe error handling.
+Authentication must consider secure password handling, strict regex validation for emails/passwords, UUID(4) validation for challenge IDs, OTP expiration/TTL, retry/attempt limits, JWT expiration, guards, authorization, rate limiting, and safe error handling.
+
+#### Session Management
+
+Sessions are managed via the `JwtAuthGuard`. The guard validates sessions by first checking the Redis session cache (`auth:session:${sessionId}`). If a cache miss occurs, it falls back to the PostgreSQL `Session` table to verify session validity. On logout, both the database session and the Redis cache entry must be immediately evicted to prevent session bypass. Redis keys must be managed centrally via `AuthHelperService` (e.g., `KEY_PASSWORD_RESET`, `KEY_SESSION_CACHE`).
 
 ### Social OAuth
 

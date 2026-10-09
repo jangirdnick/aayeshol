@@ -13,9 +13,18 @@ export interface JwtAccessPayload {
 }
 
 /**
+ * Base request context extracted for structured logging.
+ */
+export interface RequestContext {
+  requestId: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/**
  * Validated JWT payload attached to req.user by JWT guard.
  */
-export interface AuthenticatedUser {
+export interface AuthenticatedUser extends RequestContext {
   userId: string;
   sessionId: string;
 }

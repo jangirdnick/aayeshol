@@ -9,7 +9,7 @@ Its primary objective is to automate and streamline the repetitive tasks involve
 
 ### Core Capabilities:
 
-- **Authentication**: Custom authentication flow for user account creation and login.
+- **Authentication**: Advanced 2-step OTP flow (Registration, Login, Password Reset) using JWT access tokens (8m), HTTP-only cookie-based refresh tokens (7h), and Redis-backed session caching with PostgreSQL fallback. Enforces strict regex validation for passwords and emails.
 - **Integrations**: Link social media accounts (OAuth/API) and connect Google Drive as a media source.
 - **AI Content Assistant**: Leverage Gemini API to generate platform-specific content (captions, hashtags, titles) based on user prompts.
 - **Publishing & Scheduling**: Build posts with platform-specific content and choose to either **Direct Post** or **Schedule Post** for a specific date and time.
