@@ -6,6 +6,7 @@ import { MailModule } from './infrastructure/mail/mail.module.js';
 import { RedisModule } from './infrastructure/redis/redis.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { SocialModule } from './social/social.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from './auth/auth.module.js';
     RedisModule,
     PrismaModule,
     AuthModule,
+    SocialModule,
   ],
   controllers: [AppController],
   providers: [AppService],
