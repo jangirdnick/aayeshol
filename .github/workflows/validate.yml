@@ -1,19 +1,6 @@
-name: CI — Format · Lint · Types · Test · Build · Audit
+name: CI — Validation
 
 on:
-  push:
-    branches:
-      - main
-      - v2
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'LICENSE'
-      - '.gitignore'
-      - '.gitattributes'
-      - '.vscode/**'
-      - '.idea/**'
-      - '.agents/**'
   pull_request:
     branches:
       - main

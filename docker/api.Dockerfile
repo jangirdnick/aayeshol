@@ -35,16 +35,13 @@ COPY apps/api ./apps/api
 
 ENV NODE_ENV=production
 
-# 1. Build shared workspace types
-RUN pnpm --filter=@aayeshol/types build
-
-# 2. Generate Prisma Client
+# 1. Generate Prisma Client
 RUN pnpm --filter=api exec prisma generate
 
-# 3. Build NestJS application
+# 2. Build NestJS application (inlines shared types directly into dist)
 RUN pnpm --filter=api build
 
-# 4. Prune dev dependencies for lean production deployment
+# 3. Prune dev dependencies for lean production deployment
 RUN pnpm --filter=api --prod deploy /app/pruned-api
 
 # ---------- Runner Stage ----------
