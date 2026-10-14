@@ -1,0 +1,121 @@
+# ==============================================================================
+# .dockerignore - Aayeshol Production Docker Ignore File
+# Keeps Docker build context lean, secure, and fast by omitting unnecessary files
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Version Control & Git Internals
+# ------------------------------------------------------------------------------
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ------------------------------------------------------------------------------
+# Markdown & Documentation Files (Not needed in production containers)
+# ------------------------------------------------------------------------------
+*.md
+**/*.md
+GEMINI.md
+**/GEMINI.md
+AGENTS.md
+**/AGENTS.md
+README.md
+**/README.md
+LICENSE
+docs/
+**/docs/
+
+# ------------------------------------------------------------------------------
+# AI Agent Skills, Prompt Caches & Agent Configs
+# ------------------------------------------------------------------------------
+.agents/
+**/.agents/
+skills/
+**/skills/
+.gemini/
+**/.gemini/
+skills-lock.json
+**/skills-lock.json
+
+# ------------------------------------------------------------------------------
+# Dependencies & Package Manager State (Installed cleanly inside Docker)
+# ------------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+.pnpm-store/
+.yarn/
+
+# ------------------------------------------------------------------------------
+# Local & Secrets Environment Files (Never bake secrets into images)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+.env*.local
+!.env.example
+
+# ------------------------------------------------------------------------------
+# Build Artifacts & Intermediate Compilations (Built cleanly inside builder)
+# ------------------------------------------------------------------------------
+dist/
+**/dist/
+build/
+**/build/
+out/
+.next/
+**/.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# ------------------------------------------------------------------------------
+# Frontend & Non-API Workspaces (When building the API Docker container)
+# ------------------------------------------------------------------------------
+apps/web/
+
+# ------------------------------------------------------------------------------
+# Testing & Code Coverage Outputs
+# ------------------------------------------------------------------------------
+coverage/
+**/coverage/
+.nyc_output/
+*.test.ts
+*.spec.ts
+**/tests/
+**/test/
+vitest.config.*
+jest.config.*
+
+# ------------------------------------------------------------------------------
+# Monorepo Caches & CI Tools
+# ------------------------------------------------------------------------------
+.turbo/
+**/.turbo/
+.husky/
+
+# ------------------------------------------------------------------------------
+# Linters, Formatters, & Editor Configs
+# ------------------------------------------------------------------------------
+.vscode/
+.idea/
+*.sublime-*
+.prettierrc*
+.prettierignore*
+eslint.config.*
+.eslintrc*
+oxlint.json*
+
+# ------------------------------------------------------------------------------
+# Logs & System Temp Files
+# ------------------------------------------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+tmp/
+scratch/

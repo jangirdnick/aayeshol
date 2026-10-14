@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.turbo
+coverage
+next-env.d.ts
+.agents
+**/.agents
+skills
+**/skills
+skills-lock.json
+**/skills-lock.json

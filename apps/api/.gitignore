@@ -1,20 +1,22 @@
 # ─────────────────────────────────────────
 # Dependencies
 # ─────────────────────────────────────────
-/node_modules/
+node_modules/
 
 # ─────────────────────────────────────────
 # Build Outputs
 # ─────────────────────────────────────────
-/dist/
-/build/
+dist/
+build/
 
 # ─────────────────────────────────────────
 # Prisma Generated Client
-# (output: apps/api/generated/prisma/)
-# Regenerated automatically via: prisma generate
+# (output: apps/api/src/generated/prisma or apps/api/generated/prisma)
+# Regenerated automatically via: pnpm exec prisma generate
 # ─────────────────────────────────────────
-/generated/
+generated/
+src/generated/
+**/generated/prisma/
 
 # ─────────────────────────────────────────
 # TypeScript Build Cache
@@ -22,17 +24,23 @@
 *.tsbuildinfo
 
 # ─────────────────────────────────────────
-# Environment Variables
+# Environment Variables & Secrets
 # ─────────────────────────────────────────
 .env
 .env.*
+.env*.local
 !.env.example
 
 # ─────────────────────────────────────────
 # Test & Coverage
 # ─────────────────────────────────────────
-/coverage/
-/.nyc_output/
+coverage/
+.nyc_output/
+
+# ─────────────────────────────────────────
+# Turborepo Cache
+# ─────────────────────────────────────────
+.turbo/
 
 # ─────────────────────────────────────────
 # Logs
@@ -46,7 +54,7 @@ yarn-error.log*
 lerna-debug.log*
 
 # ─────────────────────────────────────────
-# Runtime Data
+# Runtime Data & Process IDs
 # ─────────────────────────────────────────
 pids/
 *.pid
@@ -55,16 +63,16 @@ pids/
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # ─────────────────────────────────────────
-# OS & System
+# OS & System Artifacts
 # ─────────────────────────────────────────
 .DS_Store
 .temp/
 .tmp/
 
 # ─────────────────────────────────────────
-# IDEs & Editors
+# IDEs & Editor Settings
 # ─────────────────────────────────────────
-/.idea/
+.idea/
 .project
 .classpath
 .c9/

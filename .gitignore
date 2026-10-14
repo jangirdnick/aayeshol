@@ -4,13 +4,15 @@
 node_modules/
 .pnp
 .pnp.js
+.pnpm-store/
 .yarn/install-state.gz
 
 # ─────────────────────────────────────────
-# Environment Variables
+# Environment Variables & Secrets
 # ─────────────────────────────────────────
 .env
 .env.*
+.env*.local
 !.env.example
 
 # ─────────────────────────────────────────
@@ -25,12 +27,16 @@ out/
 # Prisma Generated Client
 # ─────────────────────────────────────────
 generated/
+src/generated/
+**/generated/prisma/
 
 # ─────────────────────────────────────────
-# TypeScript
+# TypeScript & Framework Cache
 # ─────────────────────────────────────────
 *.tsbuildinfo
 next-env.d.ts
+.next/types/
+.next/dev/
 
 # ─────────────────────────────────────────
 # Test & Coverage
@@ -39,7 +45,7 @@ coverage/
 .nyc_output/
 
 # ─────────────────────────────────────────
-# Turbo Cache
+# Turborepo Cache
 # ─────────────────────────────────────────
 .turbo/
 
@@ -55,7 +61,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # ─────────────────────────────────────────
-# Runtime Data
+# Runtime Data & Process IDs
 # ─────────────────────────────────────────
 pids/
 *.pid
@@ -64,21 +70,29 @@ pids/
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # ─────────────────────────────────────────
-# Deployment / Cloud
+# Deployment & Hosting
 # ─────────────────────────────────────────
 .vercel/
 
 # ─────────────────────────────────────────
-# OS & System
+# OS & System Artifacts
 # ─────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 *.pem
 .temp/
 .tmp/
+*.swp
+*.swo
+*~
 
 # ─────────────────────────────────────────
-# IDEs & Editors
+# IDEs & Editor Settings
 # ─────────────────────────────────────────
 .idea/
 .project
