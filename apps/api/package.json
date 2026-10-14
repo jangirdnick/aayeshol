@@ -1,8 +1,8 @@
 {
   "name": "api",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Aayeshol v2 Backend API & Background Workers (NestJS 11, Prisma 7, BullMQ, Redis)",
+  "author": "Aayeshol Engineering Team",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",

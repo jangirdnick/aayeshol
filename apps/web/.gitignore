@@ -1,37 +1,44 @@
 # ─────────────────────────────────────────
 # Dependencies
 # ─────────────────────────────────────────
-/node_modules/
-/.pnp
+node_modules/
+.pnp
 .pnp.js
 
 # ─────────────────────────────────────────
-# Next.js Build Output
+# Next.js Build Output & Cache
 # ─────────────────────────────────────────
-/.next/
-/out/
+.next/
+out/
+.next/dev/
+.next/types/
 
 # ─────────────────────────────────────────
-# TypeScript
+# TypeScript Build Cache
 # ─────────────────────────────────────────
 *.tsbuildinfo
 next-env.d.ts
-.next/dev/
 
 # ─────────────────────────────────────────
-# Environment Variables
+# Environment Variables & Secrets
 # ─────────────────────────────────────────
 .env
 .env.*
+.env*.local
 !.env.example
 
 # ─────────────────────────────────────────
 # Test & Coverage
 # ─────────────────────────────────────────
-/coverage/
+coverage/
 
 # ─────────────────────────────────────────
-# Deployment
+# Turborepo Cache
+# ─────────────────────────────────────────
+.turbo/
+
+# ─────────────────────────────────────────
+# Deployment & Hosting
 # ─────────────────────────────────────────
 .vercel/
 
@@ -45,7 +52,9 @@ pnpm-debug.log*
 *.log
 
 # ─────────────────────────────────────────
-# OS & System
+# OS & System Artifacts
 # ─────────────────────────────────────────
 .DS_Store
 *.pem
+.temp/
+.tmp/

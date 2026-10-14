@@ -1,4 +1,4 @@
-name: Validate — Format · Lint · Types · Test · Build · Audit
+name: CI — Format · Lint · Types · Test · Build · Audit
 
 on:
   push:
@@ -13,6 +13,7 @@ on:
       - '.gitattributes'
       - '.vscode/**'
       - '.idea/**'
+      - '.agents/**'
   pull_request:
     branches:
       - main
@@ -25,6 +26,7 @@ on:
       - '.gitattributes'
       - '.vscode/**'
       - '.idea/**'
+      - '.agents/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,25 +35,23 @@ concurrency:
 env:
   PNPM_VERSION: '11.25.0'
   NODE_VERSION: '24'
+  TURBO_TELEMETRY_DISABLED: '1'
 
 jobs:
   ci:
-    name: CI — Lint · Types · Test · Build
+    name: Validate Monorepo
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
 
     steps:
       # ──────────────────────────────────────────────
-      # 1. Checkout
+      # 1. Checkout (shallow is faster and free)
       # ──────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       # ──────────────────────────────────────────────
-      # 2. Setup pnpm (must come before Node setup
-      #    so the cache path is resolved correctly)
+      # 2. Setup pnpm package manager
       # ──────────────────────────────────────────────
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -59,7 +59,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       # ──────────────────────────────────────────────
-      # 3. Setup Node.js with pnpm store cache
+      # 3. Setup Node.js with pnpm store caching
       # ──────────────────────────────────────────────
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -68,21 +68,25 @@ jobs:
           cache: 'pnpm'
 
       # ──────────────────────────────────────────────
-      # 4. Install dependencies (frozen lockfile)
-      #    Ensures CI uses exactly the same versions
-      #    as committed in pnpm-lock.yaml.
+      # 4. Turborepo Cache (Accelerates build & lint)
+      # ──────────────────────────────────────────────
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      # ──────────────────────────────────────────────
+      # 5. Install dependencies (frozen lockfile)
       # ──────────────────────────────────────────────
       - name: Install dependencies
         shell: bash
         run: pnpm install --frozen-lockfile
 
       # ──────────────────────────────────────────────
-      # 5. Generate Prisma Client (api)
-      #    MUST run before type-check, test, and build.
-      #    The generated client is output to:
-      #      apps/api/generated/prisma/
-      #    which is git-ignored. No real DB connection
-      #    is needed — prisma generate is a codegen step.
+      # 6. Generate Prisma Client (Codegen for backend)
       # ──────────────────────────────────────────────
       - name: Generate Prisma Client
         shell: bash
@@ -90,64 +94,42 @@ jobs:
         run: pnpm exec prisma generate
 
       # ──────────────────────────────────────────────
-      # 6. Format check (entire monorepo)
-      #    Uses Prettier via root package script.
+      # 7. Fast Prettier formatting check
       # ──────────────────────────────────────────────
       - name: Format check
         shell: bash
         run: pnpm format:check
 
       # ──────────────────────────────────────────────
-      # 7. Lint (all workspaces — via Turborepo)
-      #    api  → oxlint (src/ + test/)
-      #    web  → eslint --max-warnings 0
+      # 8. Lint (oxlint for api + eslint for web)
       # ──────────────────────────────────────────────
       - name: Lint
         shell: bash
         run: pnpm lint
 
       # ──────────────────────────────────────────────
-      # 8. Type check (all workspaces — via Turborepo)
-      #    api  → tsc --noEmit
-      #    web  → next typegen && tsc --noEmit
+      # 9. Strict Type check
       # ──────────────────────────────────────────────
       - name: Type check
         shell: bash
         run: pnpm check-types
 
       # ──────────────────────────────────────────────
-      # 9. Unit tests — api only (vitest)
-      #    Runs *.spec.ts files (app.controller.spec.ts)
-      #    These are isolated unit tests — no real Redis,
-      #    DB, or external services are required.
-      #
-      #    E2E tests (*.e2e-spec.ts) are intentionally
-      #    excluded: they bootstrap AppModule which
-      #    requires live Redis + env vars unavailable in CI.
-      #    E2E tests should run in a dedicated environment
-      #    with service containers (future pipeline).
-      #
-      #    web has no tests defined yet.
+      # 10. Unit tests (api vitest)
       # ──────────────────────────────────────────────
       - name: Unit tests (api)
         shell: bash
         run: pnpm --filter api test
 
       # ──────────────────────────────────────────────
-      # 10. Build (all workspaces — via Turborepo)
-      #     api  → nest build  (outputs to apps/api/dist/)
-      #     web  → next build  (outputs to apps/web/.next/)
-      #     Turborepo resolves build order automatically.
+      # 11. Production Build (Turborepo parallel build)
       # ──────────────────────────────────────────────
       - name: Build (api + web)
         shell: bash
         run: pnpm build
 
       # ──────────────────────────────────────────────
-      # 11. Security audit (high + critical severity)
-      #     The unfixable braces CVE (GHSA-vfj7-8cjw-p6xm)
-      #     is suppressed via auditConfig.ignoreGhsas
-      #     in pnpm-workspace.yaml — no extra flags needed.
+      # 12. Security audit (high & critical severity)
       # ──────────────────────────────────────────────
       - name: Security audit
         shell: bash
