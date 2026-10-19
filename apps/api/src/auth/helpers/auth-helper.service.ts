@@ -484,6 +484,7 @@ export class AuthHelperService {
     userId: string,
     ipAddress?: string,
     userAgent?: string,
+    ctx?: RequestContext,
   ): Promise<TokenPair> {
     const sessionId = generateSessionId();
     const refreshToken = generateRefreshToken();
@@ -513,6 +514,11 @@ export class AuthHelperService {
     });
 
     const accessToken = this.signAccessToken(userId, sessionId);
+
+    // Seed Redis session cache so JwtAuthGuard hits cache immediately (8 min TTL)
+    await this.redis
+      .setObject(KEY_SESSION_CACHE(sessionId), { userId, sessionId }, 8 * 60, ctx)
+      .catch(() => {});
 
     return { accessToken, refreshToken, sessionId };
   }

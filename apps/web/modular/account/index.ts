@@ -53,3 +53,55 @@ export type {
 // Utilities
 export { EMAIL_REGEX, STRONG_PASSWORD_REGEX, OTP_REGEX } from './utils/regex.util';
 export { extractZodErrors } from './utils/auth-error.util';
+
+// Store & Utilities
+export {
+  useAuthStore,
+  authSlice,
+  getAuthToken,
+  isAuthenticated,
+  isAdminUser,
+  isSessionValid,
+  isTokenExpired,
+  extractTokenExpiry,
+  clearSession,
+} from './store/auth.store';
+export type { AuthState, AuthActions, AuthStore } from './store/auth.store';
+
+// Providers & Guards
+export {
+  AuthProvider,
+  useAuth,
+  AuthGuard,
+  AuthChecker,
+  GuestGuard,
+  GuestProvider,
+} from './providers';
+export type {
+  AuthProviderProps,
+  AuthContextValue,
+  AuthGuardProps,
+  AuthCheckerProps,
+  GuestGuardProps,
+  GuestProviderProps,
+} from './providers';
+
+// API Service
+export { authApi } from './api';
+
+// TanStack Query Hooks & Keys
+export {
+  authKeys,
+  useLoginMutation,
+  useVerifyLoginOtpMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+  useCurrentUserQuery,
+  useLogoutMutation,
+  type UseLoginMutationOptions,
+  type UseVerifyLoginOtpMutationOptions,
+  type UseForgotPasswordMutationOptions,
+  type UseResetPasswordMutationOptions,
+  type UseCurrentUserQueryOptions,
+  type UseLogoutMutationOptions,
+} from './hooks';

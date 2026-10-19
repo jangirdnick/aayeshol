@@ -1,0 +1,27 @@
+{
+  "services": {
+    "web": {
+      "root": "apps/web"
+    },
+    "api": {
+      "runtime": "container",
+      "root": ".",
+      "dockerfile": "Dockerfile.vercel"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "api.aayeshol.nickdev.space" }],
+      "destination": { "service": "api" }
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": { "service": "api" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "web" }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 services:
   api:
     platform: linux/amd64
-    image: aayeshol-api:latest
+    image: vcr.vercel.com/its-nandlals-projects/aayeshol/aayeshol-api
     build:
       context: .
       dockerfile: docker/api.Dockerfile

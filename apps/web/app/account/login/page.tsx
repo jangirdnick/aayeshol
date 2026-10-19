@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { LoginForm } from '@/modular/account';
 
 export const metadata: Metadata = {
@@ -12,5 +13,9 @@ export const metadata: Metadata = {
  * Thin Next.js Server Component rendering the modular 2-Step OTP login workflow.
  */
 export default function LoginPage() {
-  return <LoginForm />;
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
 }

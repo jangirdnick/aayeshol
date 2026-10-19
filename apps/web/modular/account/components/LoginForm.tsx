@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AuthLayoutWrapper } from './AuthLayoutWrapper';
@@ -10,6 +11,8 @@ import { PasswordField } from './PasswordField';
 import { OtpVerificationForm } from './OtpVerificationForm';
 import { loginSchema, verifyOtpSchema } from '../schemas/auth.schema';
 import { extractZodErrors } from '../utils/auth-error.util';
+import { useLoginMutation } from '../hooks/use-login-mutation';
+import { useVerifyLoginOtpMutation } from '../hooks/use-verify-login-otp-mutation';
 import type { LoginStep, FormErrors, LoginFormData } from '../types';
 
 export interface LoginFormProps {
@@ -26,7 +29,7 @@ export interface LoginFormProps {
 /**
  * Modular 2-Step Login Form component.
  * Preserves the original visual identity, animations, and step transition
- * while enforcing strict Zod validation and clean component separation.
+ * while enforcing strict Zod validation, TanStack Query mutations, and Zustand session synchronization.
  */
 export function LoginForm({
   initialStep = 'credentials',
@@ -34,13 +37,23 @@ export function LoginForm({
   onSubmitCredentials,
   onSubmitOtp,
 }: LoginFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/dashboard';
+
   const [step, setStep] = useState<LoginStep>(initialStep);
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [challengeId, setChallengeId] = useState<string>('');
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // TanStack Query mutations
+  const loginMutation = useLoginMutation();
+  const verifyOtpMutation = useVerifyLoginOtpMutation();
+
+  const isLoading = loginMutation.isPending;
+  const isVerifying = verifyOtpMutation.isPending;
 
   // Field-level error messages
   const [credentialErrors, setCredentialErrors] = useState<FormErrors<LoginFormData>>({});
@@ -65,19 +78,26 @@ export function LoginForm({
       return;
     }
 
-    setIsLoading(true);
-
     try {
       if (onSubmitCredentials) {
         await onSubmitCredentials(result.data);
+        setStep('otp');
+        setResendCooldown(30);
       } else {
-        // Step 1: Simulate dispatching OTP to email & issuing challenge
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        const res = await loginMutation.mutateAsync(result.data);
+        if (res.success && res.data?.challengeId) {
+          setChallengeId(res.data.challengeId);
+          setStep('otp');
+          setResendCooldown(30);
+        } else {
+          setCredentialErrors({
+            root: res.message || 'Login failed. Please check your credentials.',
+          });
+        }
       }
-      setStep('otp');
-      setResendCooldown(30);
-    } finally {
-      setIsLoading(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid email or password.';
+      setCredentialErrors({ root: message });
     }
   };
 
@@ -92,23 +112,44 @@ export function LoginForm({
       return;
     }
 
-    setIsVerifying(true);
-
     try {
       if (onSubmitOtp) {
         await onSubmitOtp({ email, otp });
       } else {
-        // Step 2: Simulate OTP verification
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (!challengeId) {
+          setOtpError('Session challenge expired. Please re-enter your credentials.');
+          setStep('credentials');
+          return;
+        }
+
+        const res = await verifyOtpMutation.mutateAsync({ challengeId, otp });
+        if (res.success) {
+          router.push(redirectUrl);
+        } else {
+          setOtpError(res.message || 'Invalid or expired OTP code.');
+        }
       }
-    } finally {
-      setIsVerifying(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to verify OTP code.';
+      setOtpError(message);
     }
   };
 
-  const handleResendOtp = () => {
-    if (resendCooldown > 0) return;
-    setResendCooldown(30);
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || !email || !password) return;
+    try {
+      const res = await loginMutation.mutateAsync({ email, password });
+      if (res.success && res.data?.challengeId) {
+        setChallengeId(res.data.challengeId);
+        setResendCooldown(30);
+        setOtpError(undefined);
+      } else {
+        setOtpError(res.message || 'Failed to resend code.');
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to resend verification code.';
+      setOtpError(message);
+    }
   };
 
   return (
@@ -137,6 +178,15 @@ export function LoginForm({
             </h1>
           </div>
 
+          {credentialErrors.root && (
+            <div
+              className="p-3.5 mb-4 text-sm rounded-xl bg-destructive/10 text-destructive border border-destructive/20 font-medium"
+              role="alert"
+            >
+              {credentialErrors.root}
+            </div>
+          )}
+
           <form onSubmit={handleLoginSubmit} className="space-y-4" noValidate>
             {/* Email Field */}
             <AuthFormField
@@ -148,8 +198,8 @@ export function LoginForm({
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                if (credentialErrors.email) {
-                  setCredentialErrors((prev) => ({ ...prev, email: undefined }));
+                if (credentialErrors.email || credentialErrors.root) {
+                  setCredentialErrors((prev) => ({ ...prev, email: undefined, root: undefined }));
                 }
               }}
               placeholder="Enter email"
@@ -168,8 +218,12 @@ export function LoginForm({
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
-                if (credentialErrors.password) {
-                  setCredentialErrors((prev) => ({ ...prev, password: undefined }));
+                if (credentialErrors.password || credentialErrors.root) {
+                  setCredentialErrors((prev) => ({
+                    ...prev,
+                    password: undefined,
+                    root: undefined,
+                  }));
                 }
               }}
               placeholder="Enter password"

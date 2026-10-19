@@ -15,8 +15,6 @@ import { RedisService } from '../infrastructure/redis/redis.service.js';
 import { MailService } from '../infrastructure/mail/mail.service.js';
 
 import {
-  generateRefreshToken,
-  generateSessionId,
   getRefreshTokenCookieOptions,
   hashRefreshToken,
   REFRESH_TOKEN_COOKIE,
@@ -37,8 +35,8 @@ import type {
   RequestContext,
 } from './types/auth.types.js';
 
-import { AuthHelperService } from './helpers/auth-helper.service.js';
 import {
+  AuthHelperService,
   BCRYPT_ROUNDS,
   KEY_EMAIL_VERIFY,
   KEY_LOGIN_OTP,
@@ -451,6 +449,9 @@ export class AuthService {
   async refreshTokens(refreshTokenCookie: string | undefined, res: Response, ctx?: RequestContext) {
     try {
       if (!refreshTokenCookie) {
+        this.logger.warn(
+          `Refresh failed: No refresh token cookie provided in request headers${this.helper.formatContext(ctx)}`,
+        );
         throw new UnauthorizedException('No refresh token provided');
       }
 
@@ -461,10 +462,16 @@ export class AuthService {
       });
 
       if (!account || !account.refreshTokenExpiresAt) {
+        this.logger.warn(
+          `Refresh failed: Token hash not found in database or is revoked${this.helper.formatContext(ctx)}`,
+        );
         throw new UnauthorizedException('Invalid or revoked refresh token');
       }
 
       if (new Date() > account.refreshTokenExpiresAt) {
+        this.logger.warn(
+          `Refresh failed: Token expired at ${account.refreshTokenExpiresAt.toISOString()}${this.helper.formatContext(ctx)}`,
+        );
         // Token expired — revoke and clear cookie
         await this.prisma.account.update({
           where: { id: account.id },
@@ -474,34 +481,26 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token expired. Please log in again.');
       }
 
-      // Rotate token
-      const newRefreshToken = generateRefreshToken();
-      const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
-      const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS);
-      const sessionId = generateSessionId();
+      // Rotate token and create authenticated session
+      const tokens = await this.helper.createSessionAndTokens(
+        account.userId,
+        ctx?.ipAddress,
+        ctx?.userAgent,
+        ctx,
+      );
 
-      await this.prisma.account.update({
-        where: { id: account.id },
-        data: {
-          refreshToken: newRefreshTokenHash,
-          refreshTokenExpiresAt: newExpiresAt,
-          isRevoked: false,
-        },
-      });
-
-      const accessToken = this.helper.signAccessToken(account.userId, sessionId);
       const isProduction = this.config.get<string>('NODE_ENV') === 'production';
 
       res.cookie(
         REFRESH_TOKEN_COOKIE,
-        newRefreshToken,
+        tokens.refreshToken,
         getRefreshTokenCookieOptions(REFRESH_TOKEN_EXPIRY_MS, isProduction),
       );
 
       this.logger.log(
         `Tokens rotated for user: ${account.userId}${this.helper.formatContext(ctx)}`,
       );
-      return successResponse('Tokens refreshed', { accessToken });
+      return successResponse('Tokens refreshed', { accessToken: tokens.accessToken });
     } catch (error) {
       this.helper.handleError(this.logger, 'Refresh tokens', error, ctx);
     }
