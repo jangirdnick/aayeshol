@@ -1,25 +1,16 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
-import { Geist, Playfair_Display } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Providers } from './providers';
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
-});
-
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
-  variable: '--font-geist-sans',
+  variable: '--font-sans',
 });
 const geistMono = localFont({
   src: './fonts/GeistMonoVF.woff',
-  variable: '--font-geist-mono',
+  variable: '--font-mono',
 });
 
 export const metadata: Metadata = {
@@ -36,11 +27,11 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn('font-sans', geist.variable, playfair.variable)}
+      className={cn('font-sans', geistSans.variable, geistMono.variable)}
     >
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground transition-colors duration-200`}
+        className="antialiased min-h-screen bg-background text-foreground transition-colors duration-200"
       >
         <Providers>{children}</Providers>
       </body>
