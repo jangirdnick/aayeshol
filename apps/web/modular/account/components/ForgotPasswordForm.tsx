@@ -8,6 +8,7 @@ import { AuthLayoutWrapper } from './AuthLayoutWrapper';
 import { AuthFormField } from './AuthFormField';
 import { forgotPasswordSchema } from '../schemas/auth.schema';
 import { extractZodErrors } from '../utils/auth-error.util';
+import { useForgotPasswordMutation } from '../hooks/use-forgot-password-mutation';
 import type { ForgotPasswordFormData, FormErrors } from '../types';
 
 export interface ForgotPasswordFormProps {
@@ -17,12 +18,16 @@ export interface ForgotPasswordFormProps {
 
 /**
  * Self-service Forgot Password initiation form component.
+ * Integrates with useForgotPasswordMutation to dispatch recovery codes via Resend.
  */
 export function ForgotPasswordForm({ onSubmitEmail }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [challengeId, setChallengeId] = useState<string>('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errors, setErrors] = useState<FormErrors<ForgotPasswordFormData>>({});
+
+  const forgotPasswordMutation = useForgotPasswordMutation();
+  const isLoading = forgotPasswordMutation.isPending;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,18 +39,23 @@ export function ForgotPasswordForm({ onSubmitEmail }: ForgotPasswordFormProps) {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       if (onSubmitEmail) {
         await onSubmitEmail(result.data);
+        setIsSubmitted(true);
       } else {
-        // Prepare local submission state without claiming unverified API response
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        const res = await forgotPasswordMutation.mutateAsync(result.data);
+        if (res.success && res.data?.challengeId) {
+          setChallengeId(res.data.challengeId);
+          setIsSubmitted(true);
+        } else {
+          setErrors({ root: res.message || 'Failed to dispatch recovery code.' });
+        }
       }
-      setIsSubmitted(true);
-    } finally {
-      setIsLoading(false);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to send recovery code. Please try again.';
+      setErrors({ root: message });
     }
   };
 
@@ -65,6 +75,15 @@ export function ForgotPasswordForm({ onSubmitEmail }: ForgotPasswordFormProps) {
         </p>
       </div>
 
+      {errors.root && (
+        <div
+          className="p-3.5 mb-4 text-sm rounded-xl bg-destructive/10 text-destructive border border-destructive/20 font-medium"
+          role="alert"
+        >
+          {errors.root}
+        </div>
+      )}
+
       {!isSubmitted ? (
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <AuthFormField
@@ -76,8 +95,8 @@ export function ForgotPasswordForm({ onSubmitEmail }: ForgotPasswordFormProps) {
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              if (errors.email) {
-                setErrors((prev) => ({ ...prev, email: undefined }));
+              if (errors.email || errors.root) {
+                setErrors((prev) => ({ ...prev, email: undefined, root: undefined }));
               }
             }}
             placeholder="Enter your registered email"
@@ -119,7 +138,7 @@ export function ForgotPasswordForm({ onSubmitEmail }: ForgotPasswordFormProps) {
       ) : (
         <div className="space-y-4">
           <Link
-            href={`/account/reset-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+            href={`/account/reset-password${email ? `?email=${encodeURIComponent(email)}` : ''}${challengeId ? `&challengeId=${encodeURIComponent(challengeId)}` : ''}`}
             className="block w-full"
           >
             <Button className="w-full h-12 rounded-xl bg-neutral-950 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-neutral-950 font-medium text-base shadow-xs transition-all duration-200 active:scale-[0.99] cursor-pointer">

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SafeUser } from '@aayeshol/types';
 import { queryKeys } from './query-keys';
 
-import { http } from '@/modular/lib/http';
+import { http } from '@/lib/http';
 
 /**
  * Example fetcher function demonstrating type-safe API communication with Axios.

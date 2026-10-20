@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 interface ResetPasswordPageProps {
-  searchParams: Promise<{ email?: string }>;
+  searchParams: Promise<{ email?: string; challengeId?: string }>;
 }
 
 /**
@@ -20,7 +20,10 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
 
   return (
     <Suspense fallback={null}>
-      <ResetPasswordForm email={resolvedParams?.email} />
+      <ResetPasswordForm
+        email={resolvedParams?.email}
+        initialChallengeId={resolvedParams?.challengeId}
+      />
     </Suspense>
   );
 }

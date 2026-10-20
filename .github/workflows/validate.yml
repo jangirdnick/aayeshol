@@ -113,6 +113,8 @@ jobs:
       # ──────────────────────────────────────────────
       - name: Build (api + web)
         shell: bash
+        env:
+          NEXT_PUBLIC_BACKEND_API_URL: ${{ vars.NEXT_PUBLIC_BACKEND_API_URL }}
         run: pnpm build
 
       # ──────────────────────────────────────────────

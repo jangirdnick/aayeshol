@@ -111,3 +111,5 @@ Thumbs.db
 # Local Dev Scratch Files
 # ─────────────────────────────────────────
 git/
+.vercel
+.env*
