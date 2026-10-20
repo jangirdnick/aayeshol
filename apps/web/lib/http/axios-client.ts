@@ -69,24 +69,14 @@ function isPublicAuthEndpoint(url?: string): boolean {
 }
 
 /**
- * Resolves the backend API base URL.
- *
- * - **Browser (client-side)**: Always returns `/api` so requests route through the
- *   Next.js dev-server rewrite proxy (`/api/*` → `http://localhost:3001/api/*`).
- *   This keeps requests same-origin, eliminates CORS pre-flights, and ensures the
- *   HTTP-only `aayeshol_rt` refresh-token cookie is sent correctly by the browser.
- *
- * - **Server (Node.js / SSR)**: Returns the absolute backend URL from the
- *   `BACKEND_API_INTERNAL_URL` env var (used by Next.js rewrites internally) or
- *   falls back to `NEXT_PUBLIC_BACKEND_API_URL` / `http://localhost:3001/api`.
+ * Resolves the backend API base URL from environment variables.
+ * Falls back gracefully to an empty string if not configured.
  */
 export function getBackendApiUrl(): string {
   const url = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
 
-  if (!url) {
-    throw new Error(
-      'NEXT_PUBLIC_BACKEND_API_URL is not defined. Please set it in your environment variables.',
-    );
+  if (!url || !url.trim()) {
+    return '';
   }
 
   const trimmed = url.trim();
