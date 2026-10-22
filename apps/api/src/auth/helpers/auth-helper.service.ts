@@ -80,6 +80,13 @@ export const ACCESS_TOKEN_EXPIRY = '8m';
 export const REFRESH_TOKEN_EXPIRY_MS = 7 * 60 * 60 * 1000;
 
 /**
+ * Minimum elapsed creation age (in milliseconds) before an existing refresh token is removed and rotated in DB.
+ * Set to 5 hours (18,000,000 ms). When token age is under 5 hours, the old token in DB is preserved to prevent
+ * accidental user logouts caused by network drops or missing refresh cookies.
+ */
+export const REFRESH_TOKEN_ROTATION_THRESHOLD_MS = 5 * 60 * 60 * 1000;
+
+/**
  * Constructs a Redis key for storing email verification OTP challenge payloads.
  * @param id Unique challenge UUID.
  * @returns Redis key string formatted as `auth:email-verify:${id}`.
@@ -503,12 +510,21 @@ export class AuthHelperService {
         },
       });
 
-      await tx.account.update({
+      const updatedAccount = await tx.account.update({
         where: { userId },
         data: {
           refreshToken: refreshTokenHash,
           refreshTokenExpiresAt,
           isRevoked: false,
+        },
+      });
+
+      // Persist to RefreshToken table for multi-token retention and 5-hour window
+      await tx.refreshToken.create({
+        data: {
+          token: refreshTokenHash,
+          expiresAt: refreshTokenExpiresAt,
+          accountId: updatedAccount.id,
         },
       });
     });
