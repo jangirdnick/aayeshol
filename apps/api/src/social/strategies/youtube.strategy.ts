@@ -4,7 +4,6 @@ import {
   Strategy as GoogleStrategy,
   type Profile as GoogleProfile,
   type GoogleCallbackParameters,
-  type VerifyCallback,
 } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
@@ -25,7 +24,7 @@ import type { SocialAuthProfile } from '../types/social.types.js';
  * - Captures token expiration from `params.expires_in`.
  */
 @Injectable()
-export class YoutubeStrategy extends PassportStrategy(GoogleStrategy, 'youtube') {
+export class YoutubeStrategy extends PassportStrategy(GoogleStrategy, 'youtube', true) {
   private readonly logger = new Logger(YoutubeStrategy.name);
 
   constructor(private readonly configService: ConfigService) {
@@ -46,7 +45,7 @@ export class YoutubeStrategy extends PassportStrategy(GoogleStrategy, 'youtube')
    * @param refreshToken - Plaintext OAuth refresh token returned by Google (when consent is prompted).
    * @param params - Additional token response parameters containing `expires_in` and `token_type`.
    * @param profile - Normalized Google profile object.
-   * @param done - Passport completion callback.
+   * @returns Normalized SocialAuthProfile payload.
    */
   async validate(
     req: Request,
@@ -54,31 +53,22 @@ export class YoutubeStrategy extends PassportStrategy(GoogleStrategy, 'youtube')
     refreshToken: string | undefined,
     params: GoogleCallbackParameters,
     profile: GoogleProfile,
-    done: VerifyCallback,
-  ): Promise<void> {
-    try {
-      const expiresIn = params?.expires_in ? Number(params.expires_in) : undefined;
-      const tokenExpiry = expiresIn ? new Date(Date.now() + expiresIn * 1000) : undefined;
+  ): Promise<SocialAuthProfile> {
+    const expiresIn = params?.expires_in ? Number(params.expires_in) : 3600;
+    const tokenExpiry = new Date(Date.now() + expiresIn * 1000);
 
-      const socialProfile: SocialAuthProfile = {
-        provider: Platform.YOUTUBE,
-        providerId: profile.id,
-        name: profile.displayName || profile.name?.givenName,
-        email: profile.emails?.[0]?.value,
-        avatar: profile.photos?.[0]?.value,
-        accessToken,
-        refreshToken: refreshToken || undefined,
-        tokenExpiry,
-        grantedScopes: params?.scope ? params.scope.split(' ') : undefined,
-      };
+    const socialProfile: SocialAuthProfile = {
+      provider: Platform.YOUTUBE,
+      providerId: profile.id,
+      name: profile.displayName || profile.name?.givenName,
+      email: profile.emails?.[0]?.value,
+      avatar: profile.photos?.[0]?.value,
+      accessToken,
+      refreshToken: refreshToken || undefined,
+      tokenExpiry,
+      grantedScopes: params?.scope ? params.scope.split(' ') : undefined,
+    };
 
-      done(null, socialProfile);
-    } catch (error) {
-      this.logger.error(
-        `Failed to parse YouTube OAuth profile: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      done(error as Error);
-    }
+    return socialProfile;
   }
 }

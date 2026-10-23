@@ -41,7 +41,7 @@ export class XOAuthGuard extends AuthGuard('x') {
     });
 
     return {
-      state,
+      state: { id: state } as unknown as string,
       scope: OAUTH_SCOPES.X_TWITTER,
     };
   }
@@ -78,7 +78,7 @@ export class XCallbackGuard extends AuthGuard('x') {
       }
 
       res.redirect(
-        `${frontendUrl}/settings/connections?status=error&platform=x&message=${encodeURIComponent(errorMsg)}`,
+        `${frontendUrl}/dashboard/integrations?status=error&platform=x&message=${encodeURIComponent(errorMsg)}`,
       );
       return null as unknown as TUser;
     }

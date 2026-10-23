@@ -2,60 +2,148 @@
 
 import * as React from 'react';
 import { SUPPORTED_SOCIAL_PLATFORMS } from '../constants';
-import type { FilterStatus, SocialPlatformConfig } from '../types';
+import { useSocialAccountsQuery } from './use-social-accounts-query';
+import { useDisconnectSocialMutation } from './use-disconnect-social-mutation';
+import { useConnectSocial } from './use-connect-social';
+import type { FilterStatus, SocialPlatformConfig, SupportedPlatformId } from '../types';
+
+/**
+ * Normalizes platform provider strings from backend enum (e.g. 'LINKEDIN', 'X_TWITTER', 'X', 'YOUTUBE', 'INSTAGRAM')
+ * to our supported platform ID.
+ */
+function matchPlatformId(provider: string, platformId: SupportedPlatformId): boolean {
+  const normProvider = provider.toUpperCase();
+  const normId = platformId.toUpperCase();
+
+  if (normProvider === normId) return true;
+  if (normId === 'X_TWITTER' && (normProvider === 'X' || normProvider === 'TWITTER')) return true;
+  return false;
+}
 
 export function useIntegrations() {
-  const [platforms, setPlatforms] = React.useState<SocialPlatformConfig[]>(() => {
-    return SUPPORTED_SOCIAL_PLATFORMS.map((platform) => {
-      if (platform.id === 'LINKEDIN') {
-        return {
-          ...platform,
-          account: {
-            id: 'soc_linkedin_01',
-            name: 'Anton Avilov',
-            username: 'anton-avilov',
-            email: 'anton.avilov@example.com',
-            avatar: null,
-            profileUrl: 'https://linkedin.com/in/anton-avilov',
-            connectedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-          },
-        };
-      }
-      if (platform.id === 'INSTAGRAM') {
-        return {
-          ...platform,
-          account: {
-            id: 'soc_instagram_01',
-            name: 'Aayeshol Creative Studio',
-            username: 'aayeshol.studio',
-            email: null,
-            avatar: null,
-            profileUrl: 'https://instagram.com/aayeshol.studio',
-            connectedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
-          },
-        };
-      }
-      return platform;
-    });
-  });
-
   const [filterStatus, setFilterStatus] = React.useState<FilterStatus>('ALL');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [disconnectTarget, setDisconnectTarget] = React.useState<SocialPlatformConfig | null>(null);
-  const [isDisconnecting, setIsDisconnecting] = React.useState(false);
-  const [connectingId, setConnectingId] = React.useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [feedbackMessage, setFeedbackMessage] = React.useState<{
-    type: 'success' | 'info';
+    type: 'success' | 'info' | 'error';
     text: string;
   } | null>(null);
 
+  // 1. Fetch live connected social accounts from backend API (/api/social/accounts)
+  const {
+    data: connectedAccounts = [],
+    isLoading: isAccountsLoading,
+    isFetching: isAccountsFetching,
+    refetch: refetchAccounts,
+  } = useSocialAccountsQuery();
+
+  // 2. Disconnect mutation
+  const disconnectMutation = useDisconnectSocialMutation({
+    onSuccess: () => {
+      const name = disconnectTarget?.name || 'Account';
+      setFeedbackMessage({
+        type: 'info',
+        text: `${name} disconnected. Scheduled posts for this channel are paused.`,
+      });
+      setDisconnectTarget(null);
+    },
+    onError: (err) => {
+      setFeedbackMessage({
+        type: 'error',
+        text: err.message || 'Failed to disconnect account. Please try again.',
+      });
+    },
+  });
+
+  // 3. Connect OAuth initiation hook
+  const { connect, connectingPlatform } = useConnectSocial({
+    onInitiate: (platform) => {
+      setFeedbackMessage({
+        type: 'info',
+        text: `Redirecting to ${platform} authorization screen...`,
+      });
+    },
+    onError: (err, platform) => {
+      setFeedbackMessage({
+        type: 'error',
+        text: `Failed to initiate ${platform} connection: ${err.message}`,
+      });
+    },
+  });
+
+  // Auto-dismiss feedback message after 5 seconds
   React.useEffect(() => {
     if (feedbackMessage) {
-      const timer = setTimeout(() => setFeedbackMessage(null), 4000);
+      const timer = setTimeout(() => setFeedbackMessage(null), 5000);
       return () => clearTimeout(timer);
     }
   }, [feedbackMessage]);
+
+  // Read status query parameters from URL on mount (after OAuth callback redirect)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status');
+    const platform = params.get('platform');
+    const message = params.get('message');
+    const account = params.get('account');
+
+    if (status === 'success') {
+      const platformDisplay = platform ? platform.toUpperCase() : 'Social account';
+      const accountDisplay = account ? ` (${account})` : '';
+      setFeedbackMessage({
+        type: 'success',
+        text: `${platformDisplay}${accountDisplay} connected successfully. Ready for scheduled publishing.`,
+      });
+      // Invalidate and refetch accounts list
+      refetchAccounts();
+      // Clean up URL query parameters without full page reload
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (status === 'error') {
+      setFeedbackMessage({
+        type: 'error',
+        text: message
+          ? decodeURIComponent(message)
+          : 'Social account authorization was cancelled or failed.',
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [refetchAccounts]);
+
+  // Merge static platform metadata with live connected account status from backend
+  const platforms = React.useMemo<SocialPlatformConfig[]>(() => {
+    return SUPPORTED_SOCIAL_PLATFORMS.map((platform) => {
+      const matchingAccount = connectedAccounts.find((acc) =>
+        matchPlatformId(acc.provider, platform.id),
+      );
+
+      if (matchingAccount) {
+        return {
+          ...platform,
+          account: {
+            id: matchingAccount.id,
+            name: matchingAccount.name,
+            username: matchingAccount.name
+              ? matchingAccount.name.startsWith('@')
+                ? matchingAccount.name
+                : `@${matchingAccount.name.toLowerCase().replace(/\s+/g, '')}`
+              : null,
+            email: matchingAccount.email,
+            avatar: matchingAccount.avatar,
+            profileUrl: null,
+            connectedAt: matchingAccount.createdAt,
+            hasRefreshToken: matchingAccount.hasRefreshToken,
+            tokenExpiresAt: matchingAccount.tokenExpiresAt,
+          },
+        };
+      }
+
+      return {
+        ...platform,
+        account: null,
+      };
+    });
+  }, [connectedAccounts]);
 
   const connectedCount = React.useMemo(() => {
     return platforms.filter((p) => Boolean(p.account)).length;
@@ -81,70 +169,21 @@ export function useIntegrations() {
   }, [platforms, filterStatus, searchQuery]);
 
   const connectPlatform = (platform: SocialPlatformConfig) => {
-    setConnectingId(platform.id);
-    setTimeout(() => {
-      setPlatforms((prev) =>
-        prev.map((item) => {
-          if (item.id === platform.id) {
-            return {
-              ...item,
-              account: {
-                id: `soc_${platform.id.toLowerCase()}_${Date.now()}`,
-                name: `${platform.name} Channel`,
-                username: `${platform.id.toLowerCase()}_creator`,
-                email: 'creator@aayeshol.com',
-                avatar: null,
-                profileUrl: null,
-                connectedAt: new Date().toISOString(),
-              },
-            };
-          }
-          return item;
-        }),
-      );
-      setConnectingId(null);
-      setFeedbackMessage({
-        type: 'success',
-        text: `${platform.name} connected successfully. Ready for scheduled delivery.`,
-      });
-    }, 700);
+    connect(platform.id);
   };
 
   const confirmDisconnect = () => {
-    if (!disconnectTarget) return;
-
-    setIsDisconnecting(true);
-    setTimeout(() => {
-      setPlatforms((prev) =>
-        prev.map((item) => {
-          if (item.id === disconnectTarget.id) {
-            return {
-              ...item,
-              account: null,
-            };
-          }
-          return item;
-        }),
-      );
-      const disconnectedName = disconnectTarget.name;
-      setIsDisconnecting(false);
-      setDisconnectTarget(null);
-      setFeedbackMessage({
-        type: 'info',
-        text: `${disconnectedName} disconnected. Scheduled posts are currently paused.`,
-      });
-    }, 500);
+    if (!disconnectTarget?.account?.id) return;
+    disconnectMutation.mutate(disconnectTarget.account.id);
   };
 
   const refreshAllTokens = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
+    refetchAccounts().then(() => {
       setFeedbackMessage({
         type: 'success',
-        text: 'All social channel tokens verified and active.',
+        text: 'All social channel connection statuses verified and synced with server.',
       });
-    }, 600);
+    });
   };
 
   return {
@@ -158,9 +197,9 @@ export function useIntegrations() {
     setSearchQuery,
     disconnectTarget,
     setDisconnectTarget,
-    isDisconnecting,
-    connectingId,
-    isRefreshing,
+    isDisconnecting: disconnectMutation.isPending,
+    connectingId: connectingPlatform,
+    isRefreshing: isAccountsLoading || isAccountsFetching,
     feedbackMessage,
     setFeedbackMessage,
     connectPlatform,

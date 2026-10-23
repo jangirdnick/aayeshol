@@ -77,7 +77,7 @@ export class LinkedinCallbackGuard extends AuthGuard('linkedin') {
       }
 
       res.redirect(
-        `${frontendUrl}/settings/connections?status=error&platform=linkedin&message=${encodeURIComponent(errorMsg)}`,
+        `${frontendUrl}/dashboard/integrations?status=error&platform=linkedin&message=${encodeURIComponent(errorMsg)}`,
       );
       return null as unknown as TUser;
     }

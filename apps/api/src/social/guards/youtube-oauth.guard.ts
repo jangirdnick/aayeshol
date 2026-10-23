@@ -80,7 +80,7 @@ export class YoutubeCallbackGuard extends AuthGuard('youtube') {
       }
 
       res.redirect(
-        `${frontendUrl}/settings/connections?status=error&platform=youtube&message=${encodeURIComponent(errorMsg)}`,
+        `${frontendUrl}/dashboard/integrations?status=error&platform=youtube&message=${encodeURIComponent(errorMsg)}`,
       );
       return null as unknown as TUser;
     }

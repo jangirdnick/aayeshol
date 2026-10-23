@@ -36,47 +36,71 @@ export class LinkedinStrategy extends PassportStrategy(LinkedInOAuth2Strategy, '
   }
 
   /**
+   * Retrieves profile information from LinkedIn's OpenID Connect /v2/userinfo endpoint.
+   * Modern LinkedIn apps use OpenID Connect (sub, name, email, picture) instead of deprecated r_liteprofile.
+   */
+  userProfile(accessToken: string, done: (err?: Error | null, profile?: any) => void): void {
+    fetch('https://api.linkedin.com/v2/userinfo', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`LinkedIn /v2/userinfo failed (${res.status}): ${text}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        done(null, {
+          id: data.sub,
+          displayName: data.name,
+          emails: data.email ? [{ value: data.email }] : [],
+          photos: data.picture ? [{ value: data.picture }] : [],
+          _raw: JSON.stringify(data),
+          _json: data,
+        });
+      })
+      .catch((err) => {
+        this.logger.error(`Failed to fetch LinkedIn userinfo: ${err.message}`);
+        done(err);
+      });
+  }
+
+  /**
    * Verify callback for LinkedIn OAuth 2.0.
    *
    * @param req - Express Request object containing the OAuth state parameter.
    * @param accessToken - Plaintext OAuth 2.0 access token issued by LinkedIn.
    * @param refreshToken - Optional refresh token (if issued by LinkedIn).
    * @param profile - Normalized LinkedIn profile.
-   * @param done - Passport completion callback.
+   * @returns Normalized SocialAuthProfile payload.
    */
   async validate(
     req: Request,
     accessToken: string,
     refreshToken: string | undefined,
     profile: LinkedInProfile,
-    done: (err: Error | null, user?: SocialAuthProfile) => void,
-  ): Promise<void> {
-    try {
-      // LinkedIn tokens typically have a default lifespan of 60 days (5184000 seconds)
-      const tokenExpiry = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+  ): Promise<SocialAuthProfile> {
+    // LinkedIn tokens typically have a default lifespan of 60 days (5184000 seconds)
+    const tokenExpiry = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 
-      const email = profile.emails?.[0]?.value;
-      const avatar = profile.photos?.[0]?.value;
+    const email = profile.emails?.[0]?.value;
+    const avatar = profile.photos?.[0]?.value;
 
-      const socialProfile: SocialAuthProfile = {
-        provider: Platform.LINKEDIN,
-        providerId: profile.id,
-        name: profile.displayName,
-        email,
-        avatar,
-        accessToken,
-        refreshToken: refreshToken || undefined,
-        tokenExpiry,
-        grantedScopes: [...OAUTH_SCOPES.LINKEDIN],
-      };
+    const socialProfile: SocialAuthProfile = {
+      provider: Platform.LINKEDIN,
+      providerId: profile.id,
+      name: profile.displayName,
+      email,
+      avatar,
+      accessToken,
+      refreshToken: refreshToken || undefined,
+      tokenExpiry,
+      grantedScopes: [...OAUTH_SCOPES.LINKEDIN],
+    };
 
-      done(null, socialProfile);
-    } catch (error) {
-      this.logger.error(
-        `Failed to parse LinkedIn OAuth profile: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      done(error as Error);
-    }
+    return socialProfile;
   }
 }

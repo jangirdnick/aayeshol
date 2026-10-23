@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { User, ShieldCheck, LogOut } from 'lucide-react';
+import { User, ShieldCheck, FileText, LogOut, Radio } from 'lucide-react';
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -33,6 +33,9 @@ export function SidebarProfileMenu({
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
+        <DropdownMenuLabel className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 font-semibold">
+          Preferences
+        </DropdownMenuLabel>
         <DropdownMenuItem className="rounded-md">
           <Link
             href="/dashboard/settings"
@@ -49,8 +52,34 @@ export function SidebarProfileMenu({
             onClick={onNavigate}
             className="flex w-full items-center gap-2"
           >
-            <ShieldCheck className="size-4 mr-2" />
+            <Radio className="size-4 mr-2" />
             <span>Social accounts</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuLabel className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70 font-semibold">
+          Legal &amp; Policy
+        </DropdownMenuLabel>
+        <DropdownMenuItem className="rounded-md">
+          <Link
+            href="/privacy-policy"
+            onClick={onNavigate}
+            className="flex w-full items-center gap-2"
+          >
+            <ShieldCheck className="size-4 mr-2" />
+            <span>Privacy Policy</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="rounded-md">
+          <Link
+            href="/terms-of-service"
+            onClick={onNavigate}
+            className="flex w-full items-center gap-2"
+          >
+            <FileText className="size-4 mr-2" />
+            <span>Terms of Service</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuGroup>

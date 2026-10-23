@@ -1,7 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { ExternalLink, CheckCircle2, MoreVertical, Unlink, RefreshCw } from 'lucide-react';
+import {
+  ExternalLink,
+  CheckCircle2,
+  MoreVertical,
+  Unlink,
+  RefreshCw,
+  Clock,
+  AlertTriangle,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +48,51 @@ export function PlatformCard({
       day: 'numeric',
     });
   }, [platform.account?.connectedAt]);
+
+  const tokenExpiryInfo = React.useMemo(() => {
+    if (!platform.account?.tokenExpiresAt) return null;
+    const expiry = new Date(platform.account.tokenExpiresAt);
+    if (Number.isNaN(expiry.getTime())) return null;
+
+    const now = new Date();
+    const diffMs = expiry.getTime() - now.getTime();
+    const isExpired = diffMs <= 0;
+    const diffMinutes = Math.floor(Math.abs(diffMs) / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    let label: string;
+    let isUrgent = false;
+
+    if (isExpired) {
+      label = 'Token expired';
+      isUrgent = true;
+    } else if (diffDays >= 1) {
+      label = `Expires in ${diffDays}d (${expiry.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})`;
+      isUrgent = diffDays <= 3;
+    } else if (diffHours >= 1) {
+      label = `Expires in ${diffHours}h`;
+      isUrgent = true;
+    } else {
+      label = `Expires in ${Math.max(1, diffMinutes)}m`;
+      isUrgent = true;
+    }
+
+    const fullFormatted = expiry.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    return {
+      isExpired,
+      isUrgent,
+      label,
+      fullFormatted,
+    };
+  }, [platform.account?.tokenExpiresAt]);
 
   const initials = React.useMemo(() => {
     if (!platform.account?.name) return platform.name.slice(0, 2).toUpperCase();
@@ -122,7 +175,7 @@ export function PlatformCard({
                   )}
                   <DropdownMenuItem onClick={() => onConnect(platform)} className="rounded-md">
                     <RefreshCw className="size-4 mr-2" />
-                    <span>Re-sync account</span>
+                    <span>Rotate / Renew token</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -140,35 +193,77 @@ export function PlatformCard({
 
         {/* Connected Profile Snippet */}
         {isConnected && platform.account && (
-          <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Avatar className="size-7 rounded-full shrink-0 ring-1 ring-border/80">
-                {platform.account.avatar && (
-                  <AvatarImage
-                    src={platform.account.avatar}
-                    alt={platform.account.name || platform.name}
-                  />
-                )}
-                <AvatarFallback className="rounded-full bg-neutral-800 text-[10px] text-white font-medium">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col min-w-0">
-                <span className="font-medium text-foreground truncate text-xs">
-                  {platform.account.name || 'Connected Channel'}
-                </span>
-                <span className="text-[11px] text-muted-foreground truncate">
-                  {platform.account.username
-                    ? `@${platform.account.username.replace(/^@/, '')}`
-                    : platform.account.email || 'Active'}
-                </span>
+          <div className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/20 p-2.5 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Avatar className="size-7 rounded-full shrink-0 ring-1 ring-border/80">
+                  {platform.account.avatar && (
+                    <AvatarImage
+                      src={platform.account.avatar}
+                      alt={platform.account.name || platform.name}
+                    />
+                  )}
+                  <AvatarFallback className="rounded-full bg-neutral-800 text-[10px] text-white font-medium">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-medium text-foreground truncate text-xs">
+                    {platform.account.name || 'Connected Channel'}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground truncate">
+                    {platform.account.username
+                      ? `@${platform.account.username.replace(/^@/, '')}`
+                      : platform.account.email || 'Active'}
+                  </span>
+                </div>
               </div>
+
+              {formattedConnectedDate && (
+                <span className="text-[11px] text-muted-foreground shrink-0">
+                  Linked {formattedConnectedDate}
+                </span>
+              )}
             </div>
 
-            {formattedConnectedDate && (
-              <span className="text-[11px] text-muted-foreground shrink-0">
-                Linked {formattedConnectedDate}
-              </span>
+            {/* Token Expiration & Rotation Notice */}
+            {tokenExpiryInfo && (
+              <div
+                className={cn(
+                  'flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-[11px] border transition-colors',
+                  tokenExpiryInfo.isExpired
+                    ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                    : tokenExpiryInfo.isUrgent
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-500'
+                      : 'border-border/50 bg-muted/40 text-muted-foreground',
+                )}
+                title={`Token Expiration: ${tokenExpiryInfo.fullFormatted}`}
+              >
+                <div className="flex items-center gap-1.5 min-w-0 truncate">
+                  {tokenExpiryInfo.isExpired || tokenExpiryInfo.isUrgent ? (
+                    <AlertTriangle className="size-3.5 shrink-0" />
+                  ) : (
+                    <Clock className="size-3.5 shrink-0" />
+                  )}
+                  <span className="font-medium">Token:</span>
+                  <span className="truncate">{tokenExpiryInfo.label}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onConnect(platform)}
+                  className={cn(
+                    'shrink-0 font-medium hover:underline inline-flex items-center gap-1 cursor-pointer text-[11px]',
+                    tokenExpiryInfo.isExpired || tokenExpiryInfo.isUrgent
+                      ? 'font-semibold'
+                      : 'text-foreground',
+                  )}
+                  title="Reconnect account to rotate/renew OAuth token"
+                >
+                  <RefreshCw className="size-3" />
+                  <span>Rotate</span>
+                </button>
+              </div>
             )}
           </div>
         )}

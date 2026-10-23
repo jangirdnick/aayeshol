@@ -185,7 +185,16 @@ export class JwtAuthGuard implements CanActivate {
 
   private extractBearerToken(request: Request): string | null {
     const authHeader = request.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-    return authHeader.slice(7).trim() || null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.slice(7).trim() || null;
+    }
+
+    // Support query parameter token for browser-level OAuth initiation redirects
+    const queryToken = request.query?.token;
+    if (typeof queryToken === 'string' && queryToken.trim()) {
+      return queryToken.trim();
+    }
+
+    return null;
   }
 }

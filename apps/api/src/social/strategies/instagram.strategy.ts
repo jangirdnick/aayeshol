@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy as OAuth2Strategy, type VerifyCallback } from 'passport-oauth2';
+import { Strategy as OAuth2Strategy } from 'passport-oauth2';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { Platform } from '../../generated/prisma/client.js';
@@ -32,7 +32,7 @@ interface InstagramProfileResponse {
  * - Handles exchange for long-lived tokens (60 days) to support reliable background scheduling.
  */
 @Injectable()
-export class InstagramStrategy extends PassportStrategy(OAuth2Strategy, 'instagram') {
+export class InstagramStrategy extends PassportStrategy(OAuth2Strategy, 'instagram', true) {
   private readonly logger = new Logger(InstagramStrategy.name);
 
   constructor(private readonly configService: ConfigService) {
@@ -85,7 +85,7 @@ export class InstagramStrategy extends PassportStrategy(OAuth2Strategy, 'instagr
    *                       long-lived tokens are refreshed via the exchange endpoint).
    * @param params - Additional parameters.
    * @param profile - Instagram profile object.
-   * @param done - Passport completion callback.
+   * @returns Normalized SocialAuthProfile payload.
    */
   async validate(
     req: Request,
@@ -93,30 +93,21 @@ export class InstagramStrategy extends PassportStrategy(OAuth2Strategy, 'instagr
     refreshToken: string | undefined,
     params: { expires_in?: number },
     profile: InstagramProfileResponse,
-    done: VerifyCallback,
-  ): Promise<void> {
-    try {
-      // Instagram short-lived tokens expire in 1 hour (3600 seconds), long-lived tokens in 60 days
-      const expiresIn = params?.expires_in ? Number(params.expires_in) : 60 * 24 * 3600;
-      const tokenExpiry = new Date(Date.now() + expiresIn * 1000);
+  ): Promise<SocialAuthProfile> {
+    // Instagram short-lived tokens expire in 1 hour (3600 seconds), long-lived tokens in 60 days
+    const expiresIn = params?.expires_in ? Number(params.expires_in) : 60 * 24 * 3600;
+    const tokenExpiry = new Date(Date.now() + expiresIn * 1000);
 
-      const socialProfile: SocialAuthProfile = {
-        provider: Platform.INSTAGRAM,
-        providerId: profile.id,
-        name: profile.username ? `@${profile.username}` : profile.id,
-        accessToken,
-        refreshToken: refreshToken || undefined,
-        tokenExpiry,
-        grantedScopes: [...OAUTH_SCOPES.INSTAGRAM],
-      };
+    const socialProfile: SocialAuthProfile = {
+      provider: Platform.INSTAGRAM,
+      providerId: profile.id,
+      name: profile.username ? `@${profile.username}` : profile.id,
+      accessToken,
+      refreshToken: refreshToken || undefined,
+      tokenExpiry,
+      grantedScopes: [...OAUTH_SCOPES.INSTAGRAM],
+    };
 
-      done(null, socialProfile);
-    } catch (error) {
-      this.logger.error(
-        `Failed to parse Instagram OAuth profile: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      done(error as Error);
-    }
+    return socialProfile;
   }
 }
