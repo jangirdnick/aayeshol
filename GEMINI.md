@@ -31,9 +31,10 @@ aayeshol/
 │   │   ├── .agents/skills/   # Backend Prisma and database agent skills
 │   │   └── GEMINI.md         # Dedicated Backend Architecture Guide
 │   └── web/                  # Next.js 16 Frontend Application (App Router, React 19)
-│       ├── app/              # App Router routes, layouts, and page views
+│       ├── app/              # App Router routes (account, dashboard, ai-studio, etc.)
+│       ├── modular/          # Domain-driven feature modules (account, dashboard)
 │       ├── components/ui/    # shadcn/ui components (Base UI primitives)
-│       ├── lib/              # Shared frontend utilities (cn helper)
+│       ├── lib/              # Shared frontend utilities (cn helper, query client)
 │       ├── .agents/skills/   # Frontend agent skills (shadcn, nextjs, tanstack-query, zod, etc.)
 │       └── GEMINI.md         # Dedicated Frontend Architecture Guide
 ├── packages/
@@ -58,7 +59,8 @@ aayeshol/
 2. **`apps/web` (Frontend)**:
    - Delivers the user-facing web interface and dashboard.
    - Built on **Next.js 16** with React 19 and the App Router.
-   - Styled with **Tailwind CSS v4** utilizing `@theme inline`, OKLCH color tokens, and **shadcn/ui** (Base UI primitives + Lucide icons).
+   - Structured around domain-driven modules in `modular/` (`modular/account`, `modular/dashboard`).
+   - Styled with **Tailwind CSS v4** utilizing `@theme inline`, pure `#000000` pitch black dark mode background, OKLCH color tokens, and **shadcn/ui** (Base UI primitives + Lucide icons).
    - Manages server state using **@tanstack/react-query v5** and client-side form validation via **Zod v4**.
 
 3. **`packages/types` (`@aayeshol/types`)**:

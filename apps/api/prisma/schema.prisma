@@ -67,6 +67,25 @@ model Account {
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// ( 1-to-Many ) Multiple active refresh tokens stored under Account for the 5-hour retention window
+  refreshTokens RefreshToken[]
+}
+
+/// Active Refresh Tokens linked to Account.
+/// Supports multi-token storage so tokens under 5 hours old remain valid during network retries.
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique /// SHA-256 hashed refresh token
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([token])
+  @@index([createdAt])
 }
 
 /// Active Session Tracking.

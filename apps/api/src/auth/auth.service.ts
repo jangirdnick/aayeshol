@@ -43,6 +43,7 @@ import {
   KEY_PASSWORD_RESET,
   KEY_SESSION_CACHE,
   REFRESH_TOKEN_EXPIRY_MS,
+  REFRESH_TOKEN_ROTATION_THRESHOLD_MS,
 } from './helpers/auth-helper.service.js';
 
 /**
@@ -456,38 +457,107 @@ export class AuthService {
       }
 
       const tokenHash = hashRefreshToken(refreshTokenCookie);
-      const account = await this.prisma.account.findFirst({
-        where: { refreshToken: tokenHash, isRevoked: false },
-        include: { user: true },
+
+      // Check RefreshToken table (supports multiple active tokens in the 5-hour window)
+      const storedRefreshToken = await this.prisma.refreshToken.findUnique({
+        where: { token: tokenHash },
+        include: { account: { include: { user: true } } },
       });
 
-      if (!account || !account.refreshTokenExpiresAt) {
-        this.logger.warn(
-          `Refresh failed: Token hash not found in database or is revoked${this.helper.formatContext(ctx)}`,
-        );
-        throw new UnauthorizedException('Invalid or revoked refresh token');
+      let account = storedRefreshToken?.account;
+
+      // Fallback check on Account for older tokens or initial legacy tokens
+      if (!storedRefreshToken || !account) {
+        const legacyAccount = await this.prisma.account.findFirst({
+          where: { refreshToken: tokenHash, isRevoked: false },
+          include: { user: true },
+        });
+
+        if (!legacyAccount || !legacyAccount.refreshTokenExpiresAt) {
+          this.logger.warn(
+            `Refresh failed: Token hash not found in database or is revoked${this.helper.formatContext(ctx)}`,
+          );
+          throw new UnauthorizedException('Invalid or revoked refresh token');
+        }
+
+        account = legacyAccount;
       }
 
-      if (new Date() > account.refreshTokenExpiresAt) {
+      const expiresAt = storedRefreshToken
+        ? storedRefreshToken.expiresAt
+        : account.refreshTokenExpiresAt!;
+
+      if (new Date() > expiresAt) {
         this.logger.warn(
-          `Refresh failed: Token expired at ${account.refreshTokenExpiresAt.toISOString()}${this.helper.formatContext(ctx)}`,
+          `Refresh failed: Token expired at ${expiresAt.toISOString()}${this.helper.formatContext(ctx)}`,
         );
-        // Token expired — revoke and clear cookie
-        await this.prisma.account.update({
-          where: { id: account.id },
-          data: { isRevoked: true, refreshToken: null },
-        });
+        if (storedRefreshToken) {
+          await this.prisma.refreshToken
+            .delete({ where: { id: storedRefreshToken.id } })
+            .catch(() => {});
+        } else {
+          await this.prisma.account.update({
+            where: { id: account.id },
+            data: { isRevoked: true, refreshToken: null },
+          });
+        }
         this.helper.clearRefreshCookie(res);
         throw new UnauthorizedException('Refresh token expired. Please log in again.');
       }
 
-      // Rotate token and create authenticated session
+      // Check creation time of the token being refreshed
+      const tokenCreatedAt = storedRefreshToken
+        ? storedRefreshToken.createdAt
+        : new Date(account.refreshTokenExpiresAt!.getTime() - REFRESH_TOKEN_EXPIRY_MS);
+
+      const tokenAgeMs = Date.now() - tokenCreatedAt.getTime();
+      const isCreatedFiveHoursAgo = tokenAgeMs >= REFRESH_TOKEN_ROTATION_THRESHOLD_MS;
+
+      // If token was created 5+ hours ago, remove it from the DB.
+      // If token was created < 5 hours ago, DO NOT remove it! It remains stored in DB for network retry safety!
+      if (isCreatedFiveHoursAgo) {
+        if (storedRefreshToken) {
+          await this.prisma.refreshToken
+            .delete({ where: { id: storedRefreshToken.id } })
+            .catch(() => {});
+        }
+        this.logger.log(
+          `Old refresh token removed from DB (created >= 5h ago) for user: ${account.userId}${this.helper.formatContext(ctx)}`,
+        );
+      } else {
+        this.logger.log(
+          `Old refresh token retained in DB (created < 5h ago) for user: ${account.userId}${this.helper.formatContext(ctx)}`,
+        );
+      }
+
+      // Clean up any other tokens for this account that are >= 5 hours old or expired
+      const fiveHoursAgo = new Date(Date.now() - REFRESH_TOKEN_ROTATION_THRESHOLD_MS);
+      await this.prisma.refreshToken
+        .deleteMany({
+          where: {
+            accountId: account.id,
+            OR: [{ createdAt: { lte: fiveHoursAgo } }, { expiresAt: { lte: new Date() } }],
+          },
+        })
+        .catch(() => {});
+
+      // Always generate a brand new token pair!
       const tokens = await this.helper.createSessionAndTokens(
         account.userId,
         ctx?.ipAddress,
         ctx?.userAgent,
         ctx,
       );
+
+      // Clean up any expired sessions for this user in PostgreSQL
+      await this.prisma.session
+        .deleteMany({
+          where: {
+            userId: account.userId,
+            expiresAt: { lte: new Date() },
+          },
+        })
+        .catch(() => {});
 
       const isProduction = this.config.get<string>('NODE_ENV') === 'production';
 
@@ -497,9 +567,6 @@ export class AuthService {
         getRefreshTokenCookieOptions(REFRESH_TOKEN_EXPIRY_MS, isProduction),
       );
 
-      this.logger.log(
-        `Tokens rotated for user: ${account.userId}${this.helper.formatContext(ctx)}`,
-      );
       return successResponse('Tokens refreshed', { accessToken: tokens.accessToken });
     } catch (error) {
       this.helper.handleError(this.logger, 'Refresh tokens', error, ctx);
@@ -557,6 +624,15 @@ export class AuthService {
               `Could not revoke refresh token during logout: ${err.message}${this.helper.formatContext(ctx)}`,
             );
           });
+
+        await this.prisma.refreshToken
+          .deleteMany({
+            where: {
+              account: { userId: user.userId },
+              token: tokenHash,
+            },
+          })
+          .catch(() => {});
       } else {
         await this.prisma.account
           .updateMany({
@@ -568,6 +644,14 @@ export class AuthService {
               `Could not revoke refresh token during logout: ${err.message}${this.helper.formatContext(ctx)}`,
             );
           });
+
+        await this.prisma.refreshToken
+          .deleteMany({
+            where: {
+              account: { userId: user.userId },
+            },
+          })
+          .catch(() => {});
       }
 
       // 1. Delete the session record from PostgreSQL
@@ -740,6 +824,14 @@ export class AuthService {
             isRevoked: true,
           },
         });
+
+        await tx.refreshToken
+          .deleteMany({
+            where: {
+              account: { userId: user.id },
+            },
+          })
+          .catch(() => {});
 
         // Delete all sessions for this user
         await tx.session.deleteMany({ where: { userId: user.id } });
