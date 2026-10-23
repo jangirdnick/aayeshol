@@ -79,23 +79,41 @@ export function AuthLayoutWrapper({ children, backAction, className }: AuthLayou
           {children}
         </div>
 
-        {/* Bottom Bar: Aayeshol Brand & Tagline */}
-        <div className="flex items-center gap-3 md:pt-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center -space-x-1" aria-hidden="true">
-              <span className="w-3.5 h-6 rounded-full bg-neutral-950 dark:bg-white transform -rotate-12" />
-              <span className="w-5.5 h-5.5 rounded-full bg-neutral-950 dark:bg-white" />
+        {/* Bottom Bar: Aayeshol Brand, Tagline & Legal Links */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 md:pt-4 w-full">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center -space-x-1" aria-hidden="true">
+                <span className="w-3.5 h-6 rounded-full bg-neutral-950 dark:bg-white transform -rotate-12" />
+                <span className="w-5.5 h-5.5 rounded-full bg-neutral-950 dark:bg-white" />
+              </div>
+              <span className="font-semibold text-xl tracking-tight text-neutral-950 dark:text-white">
+                aayeshol
+              </span>
             </div>
-            <span className="font-semibold text-xl tracking-tight text-neutral-950 dark:text-white">
-              aayeshol
-            </span>
+
+            <div className="h-6 w-px bg-neutral-300 dark:bg-neutral-700 mx-1" />
+
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-tight max-w-[200px]">
+              Shared Knowledge for a Responsible AI Future.
+            </p>
           </div>
 
-          <div className="h-6 w-px bg-neutral-300 dark:bg-neutral-700 mx-1" />
-
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-tight max-w-[200px]">
-            Shared Knowledge for a Responsible AI Future.
-          </p>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <Link
+              href="/privacy-policy"
+              className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            <span>•</span>
+            <Link
+              href="/terms-of-service"
+              className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
+            >
+              Terms of Service
+            </Link>
+          </div>
         </div>
       </div>
     </section>

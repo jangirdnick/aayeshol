@@ -8,16 +8,21 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'ik.imagekit.io',
       },
+      {
+        protocol: 'https',
+        hostname: 'media.licdn.com',
+      },
     ],
   },
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: '/api/:path*',
-  //       destination: `${process.env.BACKEND_API_INTERNAL_URL || 'http://localhost:3001'}/api/:path*`,
-  //     },
-  //   ];
-  // },
+  async redirects() {
+    return [
+      {
+        source: '/settings/connections',
+        destination: '/dashboard/integrations',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

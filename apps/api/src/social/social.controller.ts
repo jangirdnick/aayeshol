@@ -74,8 +74,15 @@ export class SocialController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    if (res.headersSent || !req.user) {
+      return;
+    }
     const socialProfile = req.user as unknown as SocialAuthProfile;
-    return this.socialService.handleOAuthCallback(query.state, socialProfile, res, req);
+    try {
+      return await this.socialService.handleOAuthCallback(query.state, socialProfile, res, req);
+    } catch (error) {
+      this.socialService.handleCallbackError('youtube', error, res);
+    }
   }
 
   // ─── LINKEDIN (OAUTH 2.0) ─────────────────────────────────────────────────
@@ -102,8 +109,15 @@ export class SocialController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    if (res.headersSent || !req.user) {
+      return;
+    }
     const socialProfile = req.user as unknown as SocialAuthProfile;
-    return this.socialService.handleOAuthCallback(query.state, socialProfile, res, req);
+    try {
+      return await this.socialService.handleOAuthCallback(query.state, socialProfile, res, req);
+    } catch (error) {
+      this.socialService.handleCallbackError('linkedin', error, res);
+    }
   }
 
   // ─── X / TWITTER (OAUTH 2.0 PKCE) ──────────────────────────────────────────
@@ -130,8 +144,15 @@ export class SocialController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    if (res.headersSent || !req.user) {
+      return;
+    }
     const socialProfile = req.user as unknown as SocialAuthProfile;
-    return this.socialService.handleOAuthCallback(query.state, socialProfile, res, req);
+    try {
+      return await this.socialService.handleOAuthCallback(query.state, socialProfile, res, req);
+    } catch (error) {
+      this.socialService.handleCallbackError('x', error, res);
+    }
   }
 
   // ─── INSTAGRAM (GRAPH API) ────────────────────────────────────────────────
@@ -158,8 +179,15 @@ export class SocialController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    if (res.headersSent || !req.user) {
+      return;
+    }
     const socialProfile = req.user as unknown as SocialAuthProfile;
-    return this.socialService.handleOAuthCallback(query.state, socialProfile, res, req);
+    try {
+      return await this.socialService.handleOAuthCallback(query.state, socialProfile, res, req);
+    } catch (error) {
+      this.socialService.handleCallbackError('instagram', error, res);
+    }
   }
 
   // ─── CONNECTED ACCOUNTS MANAGEMENT ────────────────────────────────────────

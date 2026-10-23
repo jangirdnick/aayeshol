@@ -43,22 +43,19 @@ export const OAUTH_SCOPES = {
    * - Userinfo: Basic profile and email for account identification
    */
   YOUTUBE: [
-    'https://www.googleapis.com/auth/youtube',
     'https://www.googleapis.com/auth/youtube.force-ssl',
-    'https://www.googleapis.com/auth/youtube.upload',
-    'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/drive.readonly',
-    'https://www.googleapis.com/auth/drive.file',
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email',
   ],
 
   /**
    * LinkedIn OAuth 2.0 Scopes:
-   * - Member Social: Read (r_member_social), Write & Delete (w_member_social) author's posts and media
-   * - OpenID Connect: Basic identity, profile, and email verification
+   * - Member Social: Write & publish (w_member_social) author's posts and media
+   * - OpenID Connect: Basic identity, profile, and email verification (openid, profile, email)
+   * Note: r_member_social is restricted to Community Management API partners and is not available to standard self-serve apps.
    */
-  LINKEDIN: ['openid', 'profile', 'email', 'w_member_social', 'r_member_social'],
+  LINKEDIN: ['openid', 'profile', 'email', 'w_member_social'],
 
   /**
    * X (Twitter) API v2 OAuth 2.0 Scopes:

@@ -77,7 +77,7 @@ export class InstagramCallbackGuard extends AuthGuard('instagram') {
       }
 
       res.redirect(
-        `${frontendUrl}/settings/connections?status=error&platform=instagram&message=${encodeURIComponent(errorMsg)}`,
+        `${frontendUrl}/dashboard/integrations?status=error&platform=instagram&message=${encodeURIComponent(errorMsg)}`,
       );
       return null as unknown as TUser;
     }

@@ -133,6 +133,18 @@ export class SocialService {
   }
 
   /**
+   * Helper to redirect browser to frontend integrations page with an error status query.
+   */
+  handleCallbackError(platform: string, error: unknown, res: Response): void {
+    if (res.headersSent) return;
+    const msg = error instanceof Error ? error.message : 'OAuth connection failed';
+    this.logger.error(`Error during ${platform} OAuth callback: ${msg}`);
+    res.redirect(
+      `${this.frontendUrl}/dashboard/integrations?status=error&platform=${platform}&message=${encodeURIComponent(msg)}`,
+    );
+  }
+
+  /**
    * Processes a verified OAuth callback: persists account metadata, encrypts tokens,
    * sends a confirmation email via Resend, and returns a JSON response or redirect.
    *
@@ -147,6 +159,16 @@ export class SocialService {
     res: Response,
     req: Request,
   ): Promise<any> {
+    if (res.headersSent) {
+      return;
+    }
+
+    if (!profile) {
+      return res.redirect(
+        `${this.frontendUrl}/dashboard/integrations?status=error&message=${encodeURIComponent('Missing social profile payload')}`,
+      );
+    }
+
     const ctx = this.getRequestContext(req);
 
     // 1. Validate and consume state bound to initiating user
@@ -294,7 +316,7 @@ export class SocialService {
     }
 
     // Redirect to frontend connected accounts dashboard with query parameters
-    const redirectUrl = `${this.frontendUrl}/settings/connections?status=success&platform=${profile.provider.toLowerCase()}&account=${encodeURIComponent(savedAccount.name || '')}`;
+    const redirectUrl = `${this.frontendUrl}/dashboard/integrations?status=success&platform=${profile.provider.toLowerCase()}&account=${encodeURIComponent(savedAccount.name || '')}`;
     return res.redirect(redirectUrl);
   }
 

@@ -1,7 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Search, CheckCircle2, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { Search, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PlatformCard } from './PlatformCard';
@@ -50,10 +52,21 @@ export function IntegrationsView() {
         {feedbackMessage && (
           <div
             role="status"
-            className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-400 transition-all animate-in fade-in-0 duration-200"
+            className={cn(
+              'flex items-center justify-between rounded-lg border px-3.5 py-2.5 text-xs transition-all animate-in fade-in-0 duration-200',
+              feedbackMessage.type === 'error'
+                ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                : feedbackMessage.type === 'info'
+                  ? 'border-primary/30 bg-primary/10 text-primary'
+                  : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+            )}
           >
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 shrink-0" />
+              {feedbackMessage.type === 'error' ? (
+                <AlertCircle className="size-4 shrink-0 text-destructive" />
+              ) : (
+                <CheckCircle2 className="size-4 shrink-0" />
+              )}
               <span className="font-medium text-foreground">{feedbackMessage.text}</span>
             </div>
             <Button
@@ -108,15 +121,39 @@ export function IntegrationsView() {
 
         {/* Bottom Security Assurance Banner */}
         <div className="rounded-lg border border-border/70 bg-card/40 px-4 py-3.5 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-start sm:items-center gap-3">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
               <ShieldCheck className="size-4" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              <strong className="text-foreground font-medium">Bank-grade security:</strong> All
-              credentials and OAuth tokens are AES-256 encrypted at rest and refreshed
-              automatically. Client secrets are never exposed.
-            </p>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-foreground font-medium">Bank-grade security:</strong> All
+                credentials and OAuth tokens are AES-256 encrypted at rest and refreshed
+                automatically. Client secrets are never exposed.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground pt-0.5">
+                <Link
+                  href="/privacy-policy"
+                  className="hover:text-foreground underline underline-offset-2 transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+                <span>•</span>
+                <Link
+                  href="/terms-of-service"
+                  className="hover:text-foreground underline underline-offset-2 transition-colors"
+                >
+                  Terms of Service
+                </Link>
+                <span>•</span>
+                <Link
+                  href="/privacy-policy#data-deletion-instructions"
+                  className="hover:text-foreground underline underline-offset-2 transition-colors"
+                >
+                  Meta Data Deletion Instructions
+                </Link>
+              </div>
+            </div>
           </div>
 
           <Badge
